@@ -1,7 +1,7 @@
 <template>
     <h3>Loginform: </h3>
     <form v-on:submit.prevent="login">
-        <label>Username: </label><input v-model="form.username" type="text">
+        <label>Username or Email: </label><input v-model="form.login_name" type="text">
         <br>
         <label>Password: </label><input v-model="form.password" type="password">
         <br>
@@ -16,17 +16,24 @@ export default {
     data() {
         return {
             form: {
-                username: "",
+                login_name: "",
                 password: ""
             }
         }
     },
     methods: {
         login: async function() {
-            await axios.post("http://127.0.0.1:5000/api/login", this.form)
-            .then(test => {
-                console.log("Status 200", test)
-            })
+            await axios.post("http://127.0.0.1:5000/api/v1/login", this.form)
+                .then(response => {
+                    console.log("Process successful login")
+                })
+                .catch(error => {
+                    console.log(error.response)
+                    console.log(error.response.data)
+                    console.log(error.response.status)
+                    console.log(error.response.headers)
+                    console.log("handle unsuccessful login fail")
+                })
         }
     }
 }
