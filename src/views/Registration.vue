@@ -2,18 +2,12 @@
     <h3>Create an Account:</h3>
 
     <form v-on:submit.prevent="create_user">
-        <label>First Name: </label><input v-model="form.first_name" type="text">
-        <br>
-        <label>Last Name: <input v-model="form.last_name" type="text"></label>
-        <br>
-        <label>Username: </label><input v-model="form.username" type="text">
-        <br>
-        <label>E-Mail Address: </label><input v-model="form.email" type="email">
-        <br>
-        <label>Password: </label><input v-model="form.password" type="password">
-        <br>
-        <label>Confirm Password: </label><input type="password">
-        <br>
+        <div>First Name:       <input required v-model="form.first_name" type="text">     <p id="first">   </p> </div>
+        <div>Last Name:        <input required v-model="form.last_name"  type="text">     <p id="last">    </p> </div> 
+        <div>Username:         <input required v-model="form.username"   type="text">     <p id="uname">   </p> </div>
+        <div>E-Mail Address:   <input required v-model="form.email"      type="email">    <p id="email">   </p> </div>
+        <div>Password:         <input required v-model="form.password"   type="password"> <p id="pw_real"> </p> </div>
+        <div>Confirm Password: <input required v-model="pw_confirmation" type="password"> <p id="pw_test"> </p> </div>
         <button type="submit">Create Account</button>
     </form>
 
@@ -30,20 +24,19 @@ export default {
                 last_name: "",
                 email: "",
                 password: "",
-            }
+            },
+            pw_confirmation: ""
         }
     },
     methods: {
         create_user: async function() {
             await axios.post("http://127.0.0.1:5000/api/v1/register", this.form)
-            .then(response => {
-
-                // if (response !=)
-
-                console.log(response)
-            })
+            // .then(response => {
+                
+                
+            // })
         }
-    }
+    }      
 }
 </script>
 
@@ -57,6 +50,10 @@ form {
 
 input {
     display: inline-block;
+}
+
+p {
+    display: inline;
 }
 
 </style>

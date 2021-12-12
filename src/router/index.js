@@ -5,26 +5,10 @@ import Calculator from "../views/Calculator.vue"
 import Registration from "../views/Registration.vue"
 
 const routes = [
-	{
-		path: "/",
-		name: "Home",
-		component: Home
-	},
-	{
-		path: "/login",
-		name: "Login",
-		component: Login
-	},
-	{
-		path: "/calculator",
-		name: "Calculator",
-		component: Calculator
-	},
-	{
-		path: "/registration",
-		name: "Registration",
-		component: Registration
-	}
+	{ path: "/", 				component: Home },
+	{ path: "/login", 			component: Login },
+	{ path: "/calculator", 		component: Calculator },
+	{ path: "/registration", 	component: Registration }
 ]
 
 const router = createRouter({

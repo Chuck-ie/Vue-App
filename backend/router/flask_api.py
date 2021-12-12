@@ -8,8 +8,8 @@ Cors = CORS(app)
 @app.route("/api/v1/login", methods=["POST"])
 def login_user() -> Response:
 
-    credentials = request.get_json()
-    response = database.authenticate_user(credentials)
+    data = request.get_json()
+    response = database.authenticate_user(data)
 
     return response
 
