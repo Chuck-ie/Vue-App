@@ -1,13 +1,4 @@
 <template>
-    <div>Hello Home Page</div>
-</template>
-
-<script>
-export default {
+    <div></div>
     
-}
-</script>
-
-<style>
-
-</style>
+</template>

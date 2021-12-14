@@ -1,8 +1,7 @@
-from flask import Response, make_response
-from flask.json import jsonify
+from flask import Response
 from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.sql import select, delete, update, insert, or_
-from sqlalchemy.orm import Session, session
+from sqlalchemy.orm import Session
 from hashlib import pbkdf2_hmac
 import os
 

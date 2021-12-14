@@ -1,6 +1,6 @@
 <template>
     <h3>Loginform: </h3>
-    <form v-on:submit.prevent="login">
+    <form @submit.prevent="login">
         <label>Username or Email:  </label> <input required v-model="form.login_name" type="text">
         <br>
         <label>Password:           </label> <input required v-model="form.password"   type="password">

@@ -1,59 +1,100 @@
 <template>
-    <h3>Create an Account:</h3>
-
-    <form v-on:submit.prevent="create_user">
-        <div>First Name:       <input required v-model="form.first_name" type="text">     <p id="first">   </p> </div>
-        <div>Last Name:        <input required v-model="form.last_name"  type="text">     <p id="last">    </p> </div> 
-        <div>Username:         <input required v-model="form.username"   type="text">     <p id="uname">   </p> </div>
-        <div>E-Mail Address:   <input required v-model="form.email"      type="email">    <p id="email">   </p> </div>
-        <div>Password:         <input required v-model="form.password"   type="password"> <p id="pw_real"> </p> </div>
-        <div>Confirm Password: <input required v-model="pw_confirmation" type="password"> <p id="pw_test"> </p> </div>
-        <button type="submit">Create Account</button>
-    </form>
-
+    
+        <form @submit.prevent="createUser" class="container">
+                <div class="row offset-md-2">
+                    <div class="col-md-3">
+                        <label for="inputFirstName" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="inputFirstName" placeholder="Fire Name">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="inputLastName" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="inputLastName" placeholder="Last Name">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="selectGender" class="form-label">Gender</label>
+                        <select class="form-select" id="selectGender">
+                            <option selected>Choose...</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="else">Else</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row offset-md-2">
+                    <div class="col-md-5">
+                        <label for="inputEmail" class="form-label">Email Address</label>
+                        <input type="text" class="form-control" id="inputEmail" placeholder="Email Address">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="inputUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="inputUsername" placeholder="Username" aria-describedby="basic-addon1">
+                    </div>
+                </div>
+        </form>
 </template>
 
 <script>
 import axios from "axios"
+import useVuelidate from "@vuelidate/core"
+import { required, email, minLength, sameAs, or } from "@vuelidate/validators"
+
 export default {
+    setup () {
+        return { v$: useVuelidate() }
+    },
     data () {
         return {
             form: {
+                firstName: "",
+                lastName: "",
                 username: "",
-                first_name: "",
-                last_name: "",
                 email: "",
                 password: "",
+                gender: ""
             },
-            pw_confirmation: ""
+            confirmedPassword: ""
         }
     },
     methods: {
-        create_user: async function() {
+        createUser: async function() {
+
+            const isValid = await this.v$.validate
+            this.form.gender = document.getElementById("selectGender").value
+
+            if (!isValid) {
+                console.log("NOT ENOUGH DATA");
+                return
+            }
+            console.log("IS VALID DATA");
             await axios.post("http://127.0.0.1:5000/api/v1/register", this.form)
             // .then(response => {
                 
                 
             // })
         }
-    }      
+    },
+    validations () {
+        return {
+            firstName:   { required },
+            lastName: { required },
+            username:  { required },
+            email: { 
+                required,
+                email
+            },
+            password: { 
+                required,
+                minLength: minLength(8)
+            },
+            confirmedPassword: sameAs(this.form.password),
+            gender: or("male", "female", "else")
+        }
+    }
+    
 }
 </script>
 
 <style scoped>
 
-form {
-    display: inline-block;
-    width: 250px;
-    text-align: left;
-}
-
-input {
-    display: inline-block;
-}
-
-p {
-    display: inline;
-}
 
 </style>
