@@ -4,8 +4,7 @@ import Login from "../views/Login.vue"
 import Registration from "../views/Registration.vue"
 
 import ProjectOverview from "../views/ProjectOverview.vue"
-import Sorting from "../views/Projects/Sorting.vue"
-import Pathfinding from "../views/Projects/Pathfinding.vue"
+import Visualizer from "../views/Projects/Visualizer.vue"
 
 import PageNotFound from "../views/PageNotFound.vue"
 
@@ -13,8 +12,8 @@ const routes = [
 	{ path: "/", 				component: Home },
 	{ path: "/login", 			component: Login },
 	{ path: "/projects", 		component: ProjectOverview },
-	{ path: "/sorting", 		component: Sorting },
-	{ path: "/pathfinding", 	component: Pathfinding },
+	{ path: "/sorting", 		component: Visualizer },
+	{ path: "/pathfinding", 	component: Visualizer },
 	{ path: "/registration", 	component: Registration },
 	{ path: "/:catchAll(.*)*",  component: PageNotFound }
 ]

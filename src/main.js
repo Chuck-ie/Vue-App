@@ -3,7 +3,8 @@ import App from "./App.vue"
 import router from "./router"
 
 import Sidebar from "./components/Sidebar.vue"
-import VisualizerMenu from "./components/VisualizerMenu.vue"
+import Sorting from "./components/Sorting.vue"
+import Pathfinding from "./components/Pathfinding.vue"
 
 import "bootstrap"
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -17,7 +18,8 @@ library.add(fas)
 createApp(App)
     .use(router)
     .component("fas", FontAwesomeIcon)  
-    .component("VisualizerMenu", VisualizerMenu)
+    .component("Sorting", Sorting)
+    .component("Pathfinding", Pathfinding)
     .component("Sidebar", Sidebar)
 
     .mount("#app")

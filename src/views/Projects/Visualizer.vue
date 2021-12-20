@@ -1,7 +1,5 @@
 <template>
-    <br>
-    <br>
-    <form class="container card position-absolute top-0" style="width:18rem; left:3rem" novalidate>
+    <form class="container card position-absolute top-50" style="width:18rem; left:3rem" novalidate>
         <div class="fs-5">Select Algorithm<fas class="iconAlgos" icon="robot"/></div>
         <!-- LOAD IF SORTING PROJECT -->
         <div v-if="url === 'sorting'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
@@ -14,8 +12,8 @@
         <div v-if="v$.settings.algorithm.$invalid && v$.settings.$dirty && url === 'sorting'" class="invalid-feedback">You must select an algorithm!</div>
         <!-- LOAD IF PATHING PROJECT -->
         <div v-if="url === 'pathfinding'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
-            <input v-model="settings.algorithm" type="radio" class="btn-check form-check-input" name="algoGroup" value="daijkstra" id="daijkstra">
-            <label class="btn btn-outline-primary" for="daijkstra">Daijkstra</label>
+            <input v-model="settings.algorithm" type="radio" class="btn-check form-check-input" name="algoGroup" value="Dijkstra" id="Dijkstra">
+            <label class="btn btn-outline-primary" for="Dijkstra">Dijkstra</label>
 
             <input v-model="settings.algorithm" type="radio" class="btn-check form-check-input" name="algoGroup" value="aStar" id="aStar">
             <label class="btn btn-outline-primary" for="aStar">A-Star</label>
@@ -41,11 +39,13 @@
         <br>
         <div class="d-flex align-items-center">
             <div>Runtime: {{ timer.value }}</div>
-            
             <div v-if="timer.value !== '0.000'" class="spinner-border spinner-border-sm ms-auto" role="status" aria-hidden="true"></div>
         </div>
         <br>
     </form>
+    <Sorting v-if="url === 'sorting'" ref="sorting"/>
+    <Pathfinding v-else-if="url === 'pathfinding'" ref="pathfinding"/>
+
 </template>
 
 <script>
@@ -87,11 +87,27 @@ export default {
             if (!this.v$.$error) {
                 clearInterval(this.timer.interval)
                 this.startTimer()
+
+                switch(this.url) {
+                    case "sorting":
+                        this.$refs.sorting.hi()
+                        break
+
+                    case "pathfinding":
+                        this.$refs.pathfinding.hi()
+                        break
+                
+                    default:
+                        throw "url path is doomed, please reload."
+                }
+
+
             }
         },
         reset: function() {
 
             var radioButtons = document.getElementsByTagName("input")
+
             for (var button of radioButtons) {
                 button.checked = false
             }
