@@ -1,15 +1,20 @@
 import { createRouter, createWebHistory } from "vue-router"
 import Home from "../views/Home.vue"
 import Login from "../views/Login.vue"
-import Calculator from "../views/Calculator.vue"
 import Registration from "../views/Registration.vue"
+
+import ProjectOverview from "../views/ProjectOverview.vue"
+import Sorting from "../views/Projects/Sorting.vue"
+import Pathfinding from "../views/Projects/Pathfinding.vue"
 
 import PageNotFound from "../views/PageNotFound.vue"
 
 const routes = [
 	{ path: "/", 				component: Home },
 	{ path: "/login", 			component: Login },
-	{ path: "/calculator", 		component: Calculator },
+	{ path: "/projects", 		component: ProjectOverview },
+	{ path: "/sorting", 		component: Sorting },
+	{ path: "/pathfinding", 	component: Pathfinding },
 	{ path: "/registration", 	component: Registration },
 	{ path: "/:catchAll(.*)*",  component: PageNotFound }
 ]

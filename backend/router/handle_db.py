@@ -1,121 +1,137 @@
-from flask import Response
-from sqlalchemy import create_engine, Table, Column, String, MetaData
-from sqlalchemy.sql import select, delete, update, insert, or_
-from sqlalchemy.orm import Session
-from hashlib import pbkdf2_hmac
-import os
+from flask import Response, make_response, jsonify
+from sqlalchemy import create_engine, Table, Column, MetaData, String, Integer
+from sqlalchemy.sql import delete, update, insert, or_
+from sqlalchemy.orm import Session, Query
+from sqlalchemy.exc import IntegrityError
+import os, hashlib, time
 
-class Database():
 
-    def create_user(self, data) -> Response:
+class Database:
+    def createUser(self, form) -> Response:
 
         try:
-            encryption = self.encrypt_password(password=data["password"])
-            statement = insert(self.user_accounts).values(
-                first_name = data["first_name"],
-                last_name = data["last_name"],
-                username = data["username"],
-                email = data["email"],
-                hash = encryption
+            encryption = self.encryptPassword(password=form["password"]["password"])
+            statement = insert(self.userAccounts).values(
+                firstName=form["firstName"],
+                lastName=form["lastName"],
+                username=form["username"],
+                email=form["email"],
+                hash=encryption,
+                gender=form["gender"],
+                userCreated=int(time.time()),
+                lastLogin=int(time.time()),
             )
-            self.commit_to_database(statement)
+            self.commitToDatabase(statement)
+            return Response(status=200)
+
+        except IntegrityError as e:
+            return (
+                self.createResponse("duplicate", "username", 200)
+                if "username" in e.args[0]
+                else self.createResponse("duplicate", "email", 200)
+            )
+
+        except Exception as e:
+            print(e)
+            return Response(status=500)
+
+    def updateUser(self, form) -> Response:
+
+        try:
+            encryption = self.encryptPassword(password=form["password"]["password"])
+            statement = update(self.userAccounts).values(
+                firstName=form["firstName"],
+                lastName=form["lastName"],
+                username=form["username"],
+                email=form["email"],
+                gender=form["gender"],
+                password_hash=encryption,
+            )
+            self.commitToDatabase(statement)
             return Response(status=200)
 
         except:
-            return Response(status=400)
+            return Response(status=500)
 
-    def update_user(self, data) -> Response:
+    def deleteUser(self, username) -> Response:
 
         try:
-            statement = update(self.user_accounts).values(
-                first_name = data["first_name"],
-                last_name = data["last_name"],
-                username = data["username"],
-                email = data["email"],
-                password_hash = data["password"]
+            statement = delete(self.userAccounts).where(
+                self.userAccounts.c.username == username
             )
-            self.commit_to_database(statement)
+            self.commitToDatabase(statement)
             return Response(status=200)
 
         except:
-            return Response(status=400)
+            return Response(status=500)
 
-
-    def delete_user(self, username) -> Response:
-
-        try:
-            statement = delete(self.user_accounts).where(
-                self.user_accounts.c.username == username
-            )
-            self.commit_to_database(statement)
-            return Response(status=200)
-
-        except:
-            return Response(status=400)
-
-
-    def authenticate_user(self, credentials) -> Response:
+    def authenticateUser(self, form) -> Response:
 
         try:
-            statement = select(self.user_accounts.c.hash).where(
-                or_(
-                    self.user_accounts.c.username==credentials["login_name"],
-                    self.user_accounts.c.email==credentials["login_name"]
+            storedHash = (
+                Query(self.userAccounts.c.hash, session=self.session)
+                .filter(
+                    or_(
+                        self.userAccounts.c.username == form["loginName"],
+                        self.userAccounts.c.email == form["loginName"],
+                    )
                 )
+                .first()
             )
-            stored_hash = self.session.execute(statement).one()[0]
-            stored_salt = stored_hash[:32]
-            new_hash = stored_salt + self.encrypt_password(credentials["password"], stored_salt)
 
-            if stored_hash == new_hash:
-                return Response(status=200)
+            if not storedHash:
+                return self.createResponse("loginError", "loginName", 200)
 
-            else:
-                return Response(status=400)
+            storedSalt = storedHash[0][:32]
+            newHash = self.encryptPassword(form["password"], storedSalt)
+
+            if storedHash[0] != newHash:
+                return self.createResponse("loginError", "password", 200)
+
+            statement = update(self.userAccounts).values(lastLogin=int(time.time()))
+            self.commitToDatabase(statement)
+
+            return Response(status=200)
 
         except:
-            return Response(status=400)
+            return Response(status=500)
 
+    def encryptPassword(self, password, salt=None) -> bytes:
 
-    def encrypt_password(self, password, salt=None) -> Response:
+        sha3 = hashlib.new("sha3_256")
 
-        if salt:
-            generated_hash = pbkdf2_hmac(
-                "sha3_256",
-                bytes(password, "utf-8"),
-                salt,
-                100_000,
-                dklen=128
-            )
-            return generated_hash
+        if not salt:
+            randomSalt = os.urandom(32)
+            sha3.update(randomSalt + bytes(password, "utf-8"))
+            return randomSalt + sha3.digest()
 
         else:
-            random_salt = os.urandom(32)
+            sha3.update(salt + bytes(password, "utf-8"))
+            return salt + sha3.digest()
 
-            generated_hash = pbkdf2_hmac(
-                "sha3_256",
-                bytes(password, "utf-8"),
-                random_salt,
-                100_000,
-                dklen=128
-            )
-            return random_salt + generated_hash
-
-    def commit_to_database(self, statement) -> None:
+    def commitToDatabase(self, statement) -> None:
         self.session.execute(statement)
         self.session.commit()
 
+    def createResponse(self, key, value, status) -> Response:
+
+        response = make_response(jsonify({key: value}), status)
+        return response
 
     engine = create_engine("sqlite:///backend/database/accounts.db")
     session = Session(engine)
     meta = MetaData()
 
-    user_accounts = Table(
-        "user_accounts", meta,
-        Column("username", String, primary_key=True, unique=True),
-        Column("first_name", String),
-        Column("last_name", String),
+    userAccounts = Table(
+        "userAccounts",
+        meta,
+        Column("firstName", String),
+        Column("lastName", String),
+        Column("username", String, unique=True),
         Column("email", String, unique=True),
-        Column("hash", String)
+        Column("hash", String),
+        Column("gender", String),
+        Column("userCreated", Integer),
+        Column("lastLogin", Integer),
     )
-
+    # meta.create_all(engine)

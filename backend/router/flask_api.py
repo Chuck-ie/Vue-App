@@ -1,3 +1,4 @@
+from flask.helpers import make_response
 import handle_db
 from flask import Flask, Response, request
 from flask_cors import CORS #, cross_origin
@@ -6,45 +7,29 @@ app = Flask(__name__)
 Cors = CORS(app)
 
 @app.route("/api/v1/login", methods=["POST"])
-def login_user() -> Response:
+def loginUser() -> Response:
 
-    data = request.get_json()
-    response = database.authenticate_user(data)
+    form = request.get_json()
+    response = database.authenticateUser(form)
 
     return response
 
 
 @app.route("/api/v1/register", methods=["POST"])
-def register_user() -> Response:
+def registerUser() -> Response:
     
-    data = request.get_json()
-    response = database.create_user(data)
+    form = request.get_json()
+    response = database.createUser(form)
 
     return response
 
 @app.route("/api/v1/delete", methods=["POST"])
-def delete_user() -> Response:
+def deleteUser() -> Response:
 
-    data = request.get_json()
-    response = database.delete_user(data)
+    form = request.get_json()
+    response = database.deleteUser(form)
 
     return response
-
-# @app.route("/api/create_user", methods=["POST"])
-# def create_account():
-
-#     data = request.get_json()
-#     password_hash = handle_db.hash_password(data["password"])
-    
-#     response = handle_db.create_user(
-#         data["first_name"],
-#         data["last_name"],
-#         data["username"],
-#         data["email"],
-#         password_hash
-#     )
-
-#     return response
 
 
 if __name__ == "__main__":
