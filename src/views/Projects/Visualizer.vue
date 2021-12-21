@@ -1,24 +1,24 @@
 <template>
-    <form class="container card position-absolute top-50" style="width:18rem; left:3rem" novalidate>
+    <form class="container card position-absolute top-0" style="width:18rem; left:3rem" novalidate>
         <div class="fs-5">Select Algorithm<fas class="iconAlgos" icon="robot"/></div>
         <!-- LOAD IF SORTING PROJECT -->
         <div v-if="url === 'sorting'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
-            <input v-model="settings.algorithm" type="radio" class="btn-check form-check-input" name="algoGroup" value="selectionSort" id="selectionSort">
+            <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="selectionSort" id="selectionSort">
             <label class="btn btn-outline-primary" for="selectionSort">Selectionsort</label>
 
-            <input v-model="settings.algorithm" type="radio" class="btn-check form-check-input" name="algoGroup" value="quickSort" id="quickSort">
+            <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="quickSort" id="quickSort">
             <label class="btn btn-outline-primary" for="quickSort">Quicksort</label>
         </div>
-        <div v-if="v$.settings.algorithm.$invalid && v$.settings.$dirty && url === 'sorting'" class="invalid-feedback">You must select an algorithm!</div>
+        <div v-if="v$.settings.algorithm.name.$invalid && v$.settings.$dirty && url === 'sorting'" class="invalid-feedback">You must select an algorithm!</div>
         <!-- LOAD IF PATHING PROJECT -->
         <div v-if="url === 'pathfinding'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
-            <input v-model="settings.algorithm" type="radio" class="btn-check form-check-input" name="algoGroup" value="Dijkstra" id="Dijkstra">
+            <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="Dijkstra" id="Dijkstra">
             <label class="btn btn-outline-primary" for="Dijkstra">Dijkstra</label>
 
-            <input v-model="settings.algorithm" type="radio" class="btn-check form-check-input" name="algoGroup" value="aStar" id="aStar">
+            <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="aStar" id="aStar">
             <label class="btn btn-outline-primary" for="aStar">A-Star</label>
         </div>
-        <div v-if="v$.settings.algorithm.$invalid && v$.settings.$dirty && url === 'pathfinding'" class="invalid-feedback">You must select an algorithm!</div>
+        <div v-if="v$.settings.algorithm.name.$invalid && v$.settings.$dirty && url === 'pathfinding'" class="invalid-feedback">You must select an algorithm!</div>
         <br>
         <div class="fs-5">Select Speed<fas class="iconSpeed" icon="tachometer-alt"/></div>
         <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
@@ -39,7 +39,7 @@
         <br>
         <div class="d-flex align-items-center">
             <div>Runtime: {{ timer.value }}</div>
-            <div v-if="timer.value !== '0.000'" class="spinner-border spinner-border-sm ms-auto" role="status" aria-hidden="true"></div>
+            <div v-if="timer.instance" class="spinner-border spinner-border-sm ms-auto" role="status" aria-hidden="true"></div>
         </div>
         <br>
     </form>
@@ -58,11 +58,14 @@ export default {
             v$: useVuelidate(),
             url: window.location.href.substr(window.location.href.lastIndexOf("/") + 1), // get last part of url to load different elements.,
             settings: {
-                algorithm: "",
+                algorithm: {
+                    name: "",
+                    running: false
+                },
                 speed: ""
             },
             timer: {
-                interval: null,
+                instance: null,
                 value: "0.000"
             }
         }
@@ -71,7 +74,7 @@ export default {
         return {
             settings: {
                 algorithm: {
-                    required
+                    name: { required }
                 },
                 speed: {
                     required
@@ -85,12 +88,30 @@ export default {
             this.v$.$validate()
 
             if (!this.v$.$error) {
-                clearInterval(this.timer.interval)
+                clearInterval(this.timer.instance)
                 this.startTimer()
+                var successful
 
                 switch(this.url) {
                     case "sorting":
-                        this.$refs.sorting.hi()
+
+                        switch(this.settings.algorithm.name) {
+
+                            case "selectionSort":
+                                await this.checkState()
+                                successful = await this.$refs.sorting.selectionSort(this.settings.speed)
+                                break
+
+                            case "quickSort":
+                                await this.checkState()
+                                successful = await this.$refs.sorting.quickSort(this.settings.speed)
+                                break
+                        }
+                        if (successful) {
+                            console.log("REACGED");
+                            this.$refs.sorting.playfield.running = false
+                            this.$refs.sorting.playfield.isSorted = true
+                        }
                         break
 
                     case "pathfinding":
@@ -100,8 +121,6 @@ export default {
                     default:
                         throw "url path is doomed, please reload."
                 }
-
-
             }
         },
         reset: function() {
@@ -112,19 +131,54 @@ export default {
                 button.checked = false
             }
 
-            clearInterval(this.timer.interval)
-            this.settings.algorithm = ""
+            this.settings.algorithm.name = ""
+            this.settings.algorithm.running = false
             this.settings.speed = ""
+            clearInterval(this.timer.instance)
+            this.timer.instance = null
             this.timer.value = "0.000"
+            console.log("REACHED");
+
+            switch(this.url) {
+                case "sorting":
+                    this.$refs.sorting.createPlayfield()
+                    break
+                
+                case "pathfinding":
+                    this.$refs.pathfinding.createPlayfield()
+            }
         },
         startTimer: function() {
 
             var startTime = (new Date()).getTime()
+            this.settings.algorithm.running = true
 
-            this.timer.interval = setInterval(() => {
-                var passedTime = ((new Date()).getTime() - startTime)/1000
-                this.timer.value = ((Math.round(passedTime * 100) / 100).toFixed(3)).toString() // always round to 3 decimal places
+            this.timer.instance = setInterval(() => {
+
+                if (this.settings.algorithm.running && !this.$refs.sorting.playfield.isSorted) {
+                    var passedTime = ((new Date()).getTime() - startTime)/1000
+                    this.timer.value = ((Math.round(passedTime * 100) / 100).toFixed(3)).toString()
+
+                } else {
+                    clearInterval(this.timer.instance)
+                    this.timer.instance = null
+                }
             }, 10)
+        },
+        checkState: function() {
+
+            if (this.url === "sorting") {
+
+                if (this.$refs.sorting.playfield.isSorted) {
+                    this.$refs.sorting.createPlayfield()
+                    window.stop()
+
+                }
+
+            } else if (this.url === "pathfinding") {
+                console.log("PATHFINDING CHECK STATE!");
+            }
+
         }
     }
 }

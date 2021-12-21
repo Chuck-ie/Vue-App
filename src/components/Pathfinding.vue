@@ -4,11 +4,20 @@
 </template>
 
 <script>
+import { useWindowSize } from "vue-window-size"
 
 export default {
     data() {
+        var { width, height } = useWindowSize();
         return {
-
+            window: {
+                width: width,
+                height: height
+            },
+            playfield: {
+                running: false,
+                timeout: null
+            }
         }
     },
     methods: {
