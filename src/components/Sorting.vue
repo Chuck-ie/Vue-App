@@ -1,6 +1,6 @@
 <template>
     <div style="position:absolute; left:21rem">
-        <div id="playfield">
+        <div ref="playfield">
             
         </div>
     </div>  
@@ -21,7 +21,8 @@ export default {
             playfield: {
                 running: false,
                 timeout: null,
-                isSorted: false
+                isSorted: false,
+                solvingSpeed: 0
             }
         }
     },
@@ -43,10 +44,12 @@ export default {
         },
         createPlayfield: function() {
 
-            var arrayLength = Math.floor((this.window.width * 0.7) / 49)
-            var arrayHeight = Math.floor(this.window.height * 0.6 / arrayLength)
+            // Calculate the amount and hight of sorting elements, the formula works as the following:
+            // this.window.width - 450 is the free space availabe (- lefthand menu); / 16 is to get the available rem (css property); / 2.6 because each element take 2.6 rem in width
+            var arrayLength = Math.floor((this.window.width - 450) / 16 / 2.6)
+            var arrayHeight = Math.floor((this.window.height - 450) / arrayLength)
 
-            var playfield = document.getElementById("playfield")
+            var playfield = this.$refs.playfield
             playfield.innerHTML = ""
             var allElements = []
             
@@ -65,8 +68,10 @@ export default {
                 allElements[j].style.left = `${24 + j * 2.6}rem` 
                 playfield.appendChild(allElements[j])
             }
+
+            this.playfield.isSorted = false
         },
-        sleep: async function(seconds) {
+        sleep: function(seconds) {
 
             return new Promise((resolve, reject) => {
                 var promise = setTimeout(() => {
@@ -78,19 +83,29 @@ export default {
                 }
             });
         },
-        colorize: async function(element, newColor) {
+        calculateDelay: function(x, y) {
+            
+            var averageDelay = 20/(x ** 2 + x)
+            this.playfield.solvingSpeed = averageDelay / parseFloat(y)
+            console.log(this.playfield.solvingSpeed)
+        },
+        colorize: function(element, newColor) {
 
             // newColor parameter is not actually a color, but a bootstrap class
             // classname definitions: dark = grey; primary = blue; warning = yellow; danger = red; success = green
             var currentColor = element.classList[1].split("-")[3]
             element.classList.replace(`list-group-item-${currentColor}`, `list-group-item-${newColor}`)
         },
-        selectionSort: async function(speed) {
+        swapElements: function(element1, element2) {
+            
+            [element1.id, element2.id] = [element2.id, element1.id];
+            [element1.style.minHeight, element2.style.minHeight] = [element2.style.minHeight, element1.style.minHeight]
+        },
+        startSelectionSort: async function(userMultiplier) {
 
-            var solvingSpeed = 0.05 / parseFloat(speed)
+            var allElements = Array.from(this.$refs.playfield.childNodes)
+            this.calculateDelay(parseInt(allElements.length), userMultiplier)
             this.playfield.running = true
-
-            var allElements = Array.from(document.getElementById("playfield").childNodes)
             
             for (var selectedElement of allElements) {
                 
@@ -100,10 +115,10 @@ export default {
 
                 for (var compareElement of slicedArray) {
 
-                    await this.sleep(solvingSpeed)
+                    await this.sleep(this.playfield.solvingSpeed)
                     this.colorize(compareElement, "warning")
 
-                    await this.sleep(solvingSpeed)
+                    await this.sleep(this.playfield.solvingSpeed)
                     if (parseInt(compareElement.id) < parseInt(bestElement.id)) {
 
                         if (bestElement !== selectedElement) {
@@ -118,11 +133,10 @@ export default {
                         this.colorize(compareElement, "danger")
                     }
                 }
-                await this.sleep(solvingSpeed)
+                await this.sleep(this.playfield.solvingSpeed)
                 
                 if (bestElement !== selectedElement) {
-                    [selectedElement.id, bestElement.id] = [bestElement.id, selectedElement.id];
-                    [selectedElement.style.minHeight, bestElement.style.minHeight] = [bestElement.style.minHeight, selectedElement.style.minHeight]
+                    this.swapElements(selectedElement, bestElement)
                     this.colorize(selectedElement, "success")
                     this.colorize(bestElement, "primary")
 
@@ -130,18 +144,95 @@ export default {
                     this.colorize(selectedElement, "success")
                 }
                 
-                await this.sleep(solvingSpeed)
+                await this.sleep(this.playfield.solvingSpeed)
                 for (var element of slicedArray) {
                     this.colorize(element, "dark")
                 }
             }
 
-            return true
+            if (document.body.contains(allElements[0])) {
+                this.playfield.running = false
+                this.playfield.isSorted = true
+                return
+            }
         },
-        quickSort: async function() {
+        startQuickSort: async function(userMultiplier) {
 
-            console.log("CALLED QUICKSORT");
+            var allElements = Array.from(this.$refs.playfield.childNodes)
+            this.playfield.running = true
 
+            this.calculateDelay(parseInt(allElements.length), userMultiplier)
+            await this.quickSort(allElements, 0, allElements.length-1)
+            
+            if (document.body.contains(allElements[0])) {
+                this.playfield.running = false
+                this.playfield.isSorted = true
+                return
+            }
+        },
+        quickSort: async function(array, low, high) {
+            
+            if (low < high) {
+
+                var split = await this.quickSortParter(array, low, high)
+                await this.quickSort(array, low, split - 1)
+                await this.quickSort(array, split + 1, high)
+
+            } else if (low === high) {
+                this.colorize(array[low], "success")
+                this.sleep(this.playfield.solvingSpeed)
+            }
+        },
+        quickSortParter: async function(array, low, high) {
+
+            let pivot = high
+            let i = low
+            let j = high-1
+
+            this.colorize(array[pivot], "primary")
+            this.colorize(array[i], "warning")
+            this.colorize(array[j], "danger")
+            await this.sleep(this.playfield.solvingSpeed)
+
+            while (i < j) {
+
+                while (i < high && parseInt(array[i].id) < parseInt(array[pivot].id)) {
+                    i++
+                    this.colorize(array[i - 1], "dark")
+                    await this.sleep(this.playfield.solvingSpeed)
+                    this.colorize(array[i], "warning")
+                    await this.sleep(this.playfield.solvingSpeed)
+                }
+
+                while (j > low && parseInt(array[j].id) > parseInt(array[pivot].id)) {
+                    j--
+                    this.colorize(array[j + 1], "dark")
+                    await this.sleep(this.playfield.solvingSpeed)
+                    this.colorize(array[j], "danger")
+                    await this.sleep(this.playfield.solvingSpeed)
+                }
+
+                if (i < j) {
+                    this.swapElements(array[i], array[j])
+                }
+            }
+
+            if (parseInt(array[i].id) > parseInt(array[pivot].id)) {
+                this.swapElements(array[i], array[high])
+            }
+
+            this.colorize(array[i], "success")
+            await this.sleep(this.playfield.solvingSpeed)
+
+            var unsortedElements = array.filter(element => {
+                return element.classList[1] !== "list-group-item-success"
+            })
+
+            for (var element of unsortedElements) {
+                this.colorize(element, "dark")
+            }
+
+            return i
         }
     }
 }
@@ -150,9 +241,5 @@ export default {
 </script>
 
 <style scoped>
-
-h3 {
-    text-align: center;
-}
 
 </style>

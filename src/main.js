@@ -17,7 +17,7 @@ library.add(fas)
 
 createApp(App)
     .use(router)
-    .component("fas", FontAwesomeIcon)  
+    .component("fas", FontAwesomeIcon)
     .component("Sorting", Sorting)
     .component("Pathfinding", Pathfinding)
     .component("Sidebar", Sidebar)

@@ -9,17 +9,18 @@ import Visualizer from "../views/Projects/Visualizer.vue"
 import PageNotFound from "../views/PageNotFound.vue"
 
 const routes = [
-	{ path: "/", 				component: Home },
-	{ path: "/login", 			component: Login },
-	{ path: "/projects", 		component: ProjectOverview },
-	{ path: "/sorting", 		component: Visualizer },
-	{ path: "/pathfinding", 	component: Visualizer },
-	{ path: "/registration", 	component: Registration },
-	{ path: "/:catchAll(.*)*",  component: PageNotFound }
+	{ path: "/", 						component: Home },
+	{ path: "/login", 					component: Login },
+	{ path: "/registration", 			component: Registration },
+	{ path: "/projects", 				component: ProjectOverview },
+	{ path: "/projects/sorting", 		component: Visualizer },
+	{ path: "/projects/pathfinding", 	component: Visualizer },
+	
+	{ path: "/:catchAll(.*)*",  		component: PageNotFound }
 ]
 
 const router = createRouter({
-		history: createWebHistory(process.env.BASE_URL),
+	history: createWebHistory(process.env.BASE_URL),
 	routes
 })
 
