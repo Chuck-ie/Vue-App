@@ -1,23 +1,29 @@
 <template>
-    <div style="position:absolute; left:21rem">
-        <div ref="playfield" v-for="(rowItem, rowId) in playfield.rowCount" :key="rowId">
-            <div v-for="(cellItem, cellId) in playfield.cellCount" :key="cellId" style="animation-name: fadeIn; animation-duration: 4s;"
+    <div style="position:absolute; left:21rem" :key="renderKey">
+        <div ref="playfield" v-for="i in playfield.rowCount" :key="i">
+            <div v-for="j in playfield.cellCount" :key="j"
                 :class="[
-                    'row',
-                    rowId,
+                    'cell',
+                    i-1,
                     'border-end',
                     'border-bottom',
-                    { 'border-top': rowId === 0 },
-                    { 'border-start': cellId === 0 }
+                    { 'border-top': i === 1 },
+                    { 'border-start': j === 1 }
                 ]"
-                :id="[(rowId + 1) * cellId]"
+                :id="[(i) * (j-1)]"
                 :style="{ 
                     position: 'fixed', 
-                    left: `${22.4 + cellId * 2}rem`,
-                    top: `${0.5 + rowId * 2}rem`,
+                    left: `${21.5 + (j-1) * 2}rem`,
+                    top: `${0.5 + (i-1) * 2}rem`,
                     minWidth: '2rem',
                     minHeight: '2rem',
                     }">
+                    <fas v-if="i === Math.floor(playfield.rowCount / 2) && j === Math.floor(playfield.cellCount / 3)" icon="star" 
+                        :style="{
+                            marginLeft: '0.25rem',
+                            marginTop: '0.3rem',
+                            fontSize: '1.3rem'
+                        }"/>
             </div>
         </div>
     </div>
@@ -43,23 +49,25 @@ export default {
                 pathFound: false,
                 solvingSpeed: 0
             },
+            renderKey: 0,
             targetCursor: "url(https://chuckie-droid.de/public/images/square-green.png), pointer",
         }
     },
     mounted() {
-        this.setRowsAndCells()
+        this.calculatePlayfieldSize()
         window.addEventListener("resize", () => {
 
             clearTimeout(this.playfield.timeout)
             this.playfield.timeout = setTimeout(() => {
-                this.setRowsAndCells()
+                this.calculatePlayfieldSize()
             }, 150)
         })
     },
     methods: {
-        setRowsAndCells: function() {
-            this.playfield.rowCount = [...Array(Math.min(Math.floor(this.window.height / 16 / 2), 40)).keys()]
-            this.playfield.cellCount = [...Array(Math.floor((this.window.width - 350) / 16 / 2)).keys()]
+        calculatePlayfieldSize: function() {
+            this.playfield.rowCount = Math.min(Math.floor(this.window.height / 16 / 2), 40)
+            this.playfield.cellCount = Math.floor((this.window.width - 350) / 16 / 2)
+            this.renderKey += 1
         },
         sleep: function(seconds) {
 
@@ -82,6 +90,11 @@ export default {
         },
         startDijkstra: function() {
 
+
+
+        },
+        startAStar: function() {
+
         }
     }
 }
@@ -89,5 +102,20 @@ export default {
 
 
 <style scoped>
+
+@keyframes fadeIn {
+    from {
+        min-width: 0rem;
+        min-height: 0rem;
+    };
+    to {
+        min-width: 2rem;
+        min-height: 2rem;
+    }
+}
+
+.cell {
+    animation: fadeIn 1s;
+}
 
 </style>

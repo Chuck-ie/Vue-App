@@ -12,8 +12,8 @@
         <div v-if="v$.settings.algorithm.name.$invalid && v$.settings.$dirty && url === 'sorting'" class="invalid-feedback">You must select an algorithm!</div>
         <!-- LOAD IF PATHING PROJECT -->
         <div v-if="url === 'pathfinding'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
-            <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="Dijkstra" id="Dijkstra">
-            <label class="btn btn-outline-primary" for="Dijkstra">Dijkstra</label>
+            <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="dijkstra" id="dijkstra">
+            <label class="btn btn-outline-primary" for="dijkstra">Dijkstra</label>
 
             <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="aStar" id="aStar">
             <label class="btn btn-outline-primary" for="aStar">A-Star</label>
@@ -31,10 +31,10 @@
             <input v-model="settings.speed" type="radio" class="btn-check form-check-input" name="speedGroup" value="0.33" id="speedOption3">
             <label class="btn btn-outline-primary" for="speedOption3">0.3 x</label>
         </div>
+        <div v-if="v$.settings.speed.$invalid && v$.settings.$dirty" class="invalid-feedback">You must select a speed level!</div>
         <br>
-
-        <div class="fs-5">Select Cells</div>
-        <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+        <div v-if="url === 'pathfinding'" class="fs-5">Select Cells</div>
+        <div v-if="url === 'pathfinding'" class="btn-group" role="group" aria-label="Basic radio toggle button group">
             <input type="radio" class="btn-check form-check-input" name="cursorGroup" value="start" id="cursorOption1">
             <label class="btn btn-outline-primary" for="cursorOption1">start</label>
 
@@ -44,8 +44,6 @@
             <input type="radio" class="btn-check form-check-input" name="cursorGroup" value="bomb" id="cursorOption3">
             <label class="btn btn-outline-primary" for="cursorOption3">obstacle</label>
         </div>
-
-        <div v-if="v$.settings.speed.$invalid && v$.settings.$dirty" class="invalid-feedback">You must select a speed level!</div>
         <br>
         <button @click.prevent="reset" type="submit" class="btn btn-outline-danger">Reset <fas icon="power-off"/></button>
         <br>
@@ -103,14 +101,17 @@ export default {
 
             if (!this.v$.$error) {
                 clearInterval(this.timer.instance)
-                this.timer.instance = null
-                this.startTimer()
 
                 switch(this.url) {
                     case "sorting":
 
                         if (this.$refs.sorting.playfield.running || this.$refs.sorting.playfield.isSorted) {
-                            this.$refs.sorting.createPlayfield()
+                            await this.$refs.sorting.calculatePlayfieldSize()
+                            await this.$refs.sorting.sleep(1)
+                            this.startTimer()
+
+                        } else {
+                            this.startTimer()
                         }
 
                         switch(this.settings.algorithm.name) {
@@ -126,7 +127,26 @@ export default {
                         break
 
                     case "pathfinding":
-                        this.$refs.pathfinding.hi()
+
+                        if (this.$refs.pathfinding.playfield.running || this.$refs.pathfinding.playfield.pathFound) {
+                            await this.$refs.pathfinding.calculatePlayfieldSize()
+                            await this.$refs.sorting.sleep(1)
+                            this.startTimer()
+                        
+                        } else {
+                            this.startTimer()
+                        }
+
+                        switch(this.settings.algorithm.name) {
+
+                            case "dijkstra":
+                                await this.$refs.pathfinding.startDijkstra(this.settings.speed)
+                                break
+
+                            case "aStar":
+                                await this.$refs.pathfinding.startAStar(this.settings.speed)
+                                break
+                        }
                         break
                 
                     default:
@@ -151,11 +171,12 @@ export default {
 
             switch(this.url) {
                 case "sorting":
-                    this.$refs.sorting.createPlayfield()
+                    this.$refs.sorting.calculatePlayfieldSize()
                     break
                 
                 case "pathfinding":
-                    this.$refs.pathfinding.createPlayfield()
+                    this.$refs.pathfinding.calculatePlayfieldSize()
+                    break
             }
         },
         startTimer: function() {
@@ -179,7 +200,7 @@ export default {
                         if (this.settings.algorithm.running && !this.$refs.sorting.playfield.isSorted) {
                             passedTime = ((new Date()).getTime() - startTime)/1000
                             this.timer.value = ((Math.round(passedTime * 100) / 100).toFixed(3)).toString()
-                        
+
                         } else {
                             clearInterval(this.timer.instance)
                             this.timer.instance = null

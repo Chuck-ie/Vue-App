@@ -1,7 +1,20 @@
 <template>
-    <div style="position:absolute; left:21rem">
-        <div ref="playfield">
-            
+    <div style="position:absolute; left:21rem" :key="renderKey">
+        <div ref="playfield" v-for="elementId in playfield.elementIds" :key="elementId">
+            <div
+                :class="[
+                    'list-group-item',
+                    'list-group-item-dark',
+                    'sortingElement'
+                ]"
+                :id="[elementId]"
+                :style="{
+                    position: 'fixed',
+                    minWidth: '1.8rem',
+                    minHeight: `${playfield.elementHeight * elementId + playfield.elementHeight}px`,
+                    left: `${24 + playfield.elementIds.indexOf(elementId) * 2.6}rem`,
+                }">
+            </div>
         </div>
     </div>  
 
@@ -19,57 +32,41 @@ export default {
                 height: height
             },
             playfield: {
+                elementIds: null,
+                elementHeight: 0,
                 running: false,
                 timeout: null,
                 isSorted: false,
                 solvingSpeed: 0
-            }
+            },
+            renderKey: 0
         }
     },
     mounted() {
-        this.onResize()
+        this.calculatePlayfieldSize()
         window.addEventListener("resize", () => {
+
             clearTimeout(this.playfield.timeout)
-            this.onResize()
+            this.playfield.timeout = setTimeout(() => {
+                this.calculatePlayfieldSize()
+            }, 150)
         })
     },
     methods: {
-        onResize: function() {
-
-            if (!this.playfield.running) {
-                this.playfield.timeout = setTimeout(() => {
-                    this.createPlayfield()
-                }, 100)
-            }
-        },
-        createPlayfield: function() {
-
-            // Calculate the amount and hight of sorting elements, the formula works as the following:
-            // this.window.width - 450 is the free space availabe (- lefthand menu); / 16 is to get the available rem (css property); / 2.6 because each element take 2.6 rem in width
+        calculatePlayfieldSize: function() {
+            
             var arrayLength = Math.floor((this.window.width - 450) / 16 / 2.6)
-            var arrayHeight = Math.floor((this.window.height - 450) / arrayLength)
-
-            var playfield = this.$refs.playfield
-            playfield.innerHTML = ""
-            var allElements = []
+            this.playfield.elementIds = []
+            this.playfield.running = false
+            this.playfield.isSorted = false
             
             for (var i = 0; i < arrayLength; i++) {
-                var newElement = document.createElement("DIV")
-                newElement.id = `${i}`
-                newElement.classList.add("list-group-item", "list-group-item-dark")
-                newElement.style.position = "fixed"
-                newElement.style.minWidth = `${1.8}rem`
-                newElement.style.minHeight = `${arrayHeight * i + arrayHeight}px`
-                allElements.push(newElement)
-            }
-            allElements.sort(() => Math.random() - 0.5)
-            
-            for (var j = 0; j < allElements.length; j++) {
-                allElements[j].style.left = `${24 + j * 2.6}rem` 
-                playfield.appendChild(allElements[j])
+                this.playfield.elementIds.push(i)
             }
 
-            this.playfield.isSorted = false
+            this.playfield.elementIds.sort(() => Math.random() - 0.5)
+            this.playfield.elementHeight = Math.floor((this.window.height - 450) / arrayLength)
+            this.renderKey += 1
         },
         sleep: function(seconds) {
 
@@ -87,7 +84,6 @@ export default {
             
             var averageDelay = 20/(x ** 2 + x)
             this.playfield.solvingSpeed = averageDelay / parseFloat(y)
-            console.log(this.playfield.solvingSpeed)
         },
         colorize: function(element, newColor) {
 
@@ -103,12 +99,12 @@ export default {
         },
         startSelectionSort: async function(userMultiplier) {
 
-            var allElements = Array.from(this.$refs.playfield.childNodes)
+            var allElements = Array.from(document.getElementsByClassName("sortingElement"))
             this.calculateDelay(parseInt(allElements.length), userMultiplier)
             this.playfield.running = true
-            
+
             for (var selectedElement of allElements) {
-                
+
                 var bestElement = selectedElement
                 var slicedArray = allElements.slice(allElements.indexOf(selectedElement) + 1)
                 this.colorize(selectedElement, "primary")
@@ -158,7 +154,7 @@ export default {
         },
         startQuickSort: async function(userMultiplier) {
 
-            var allElements = Array.from(this.$refs.playfield.childNodes)
+            var allElements = Array.from(document.getElementsByClassName("sortingElement"))
             this.playfield.running = true
 
             this.calculateDelay(parseInt(allElements.length), userMultiplier)
@@ -241,5 +237,18 @@ export default {
 </script>
 
 <style scoped>
+
+@keyframes fadeIn {
+    from {
+        min-height: 0;
+    };
+    to {
+        min-height: 100%;
+    }
+}
+
+.sortingElement {
+    animation: fadeIn 1s;
+}
 
 </style>
