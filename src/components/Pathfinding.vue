@@ -1,33 +1,54 @@
 <template>
     <div style="position:absolute; left:21rem" :key="renderKey">
         <div ref="playfield" v-for="i in playfield.rowCount" :key="i">
-            <div v-for="j in playfield.cellCount" :key="j"
-                :class="[
-                    'cell',
-                    i-1,
+            <div v-for="j in playfield.cellCount" :key="j" @mouseup="set($event)"
+                :class="[           
                     'border-end',
                     'border-bottom',
                     { 'border-top': i === 1 },
-                    { 'border-start': j === 1 }
+                    { 'border-start': j === 1 },
+                    'cell'
                 ]"
-                :id="[(i) * (j-1)]"
+                :id="[(i-1) * playfield.cellCount + j]"
                 :style="{ 
                     position: 'fixed', 
                     left: `${21.5 + (j-1) * 2}rem`,
                     top: `${0.5 + (i-1) * 2}rem`,
                     minWidth: '2rem',
                     minHeight: '2rem',
-                    }">
-                    <fas v-if="i === Math.floor(playfield.rowCount / 2) && j === Math.floor(playfield.cellCount / 3)" icon="star" 
-                        :style="{
-                            marginLeft: '0.25rem',
-                            marginTop: '0.3rem',
-                            fontSize: '1.3rem'
-                        }"/>
+                    }"
+                >
+                <component 
+                :class="['draggable']"
+                @mousedown="get($event)"
+                v-if="(i-1) * playfield.cellCount + j === startCellId"
+                :is="'fas'" 
+                :icon="'arrow-down'"
+                :style="{
+                    minWidth: '1.95rem',
+                    minHeight: '1.7rem',
+                    position: 'relative',
+                    top: '0.1rem'
+                }"
+                >
+                </component>
+                <component 
+                :class="['draggable']"
+                @mousedown="get($event)"
+                v-if="(i-1) * playfield.cellCount + j === targetCellId"
+                :is="'fas'" 
+                :icon="'bullseye'"
+                :style="{
+                    minWidth: '1.95rem',
+                    minHeight: '1.7rem',
+                    position: 'relative',
+                    top: '0.1rem'
+                }"
+                >
+                </component>
             </div>
         </div>
     </div>
-    
 </template>
 
 <script>
@@ -50,7 +71,9 @@ export default {
                 solvingSpeed: 0
             },
             renderKey: 0,
-            targetCursor: "url(https://chuckie-droid.de/public/images/square-green.png), pointer",
+            startCellId: null,
+            targetCellId: null,
+            lastSelected: "ARROW"
         }
     },
     mounted() {
@@ -64,9 +87,53 @@ export default {
         })
     },
     methods: {
+        get: function(event) {
+
+            var x = event.x; var y = event.y
+            var elementsAtCursor = document.elementsFromPoint(x, y)
+            
+            for (var element of elementsAtCursor) {
+                
+                if (element.classList.contains("fa-arrow-down")) {
+                    this.lastSelected = "ARROW"
+                } 
+                else if (element.classList.contains("fa-bullseye")) {
+                    this.lastSelected = "BULLSEYE"
+                }
+            }
+        },
+        set: function(event) {
+
+            var x = event.x; var y = event.y
+            var elementsAtCursor = document.elementsFromPoint(x, y)
+            var body = document.getElementsByTagName("body")[0]
+
+            for (var element of elementsAtCursor) {
+                
+                if (element.classList.contains("cell")) {
+                    var cell = element
+                }
+            }
+
+            switch(this.lastSelected) {
+                case "ARROW": {
+                    this.startCellId = parseInt(cell.id)
+                    body.style.cursor = "url(https://chuckie-droid.de/public/images/start.png), pointer"
+                    break
+                }
+
+                case "BULLSEYE": {
+                    this.targetCellId = parseInt(cell.id)
+                    body.style.cursor = "url(https://chuckie-droid.de/public/images/goal.png), pointer"
+                    break
+                }
+            }
+        },
         calculatePlayfieldSize: function() {
             this.playfield.rowCount = Math.min(Math.floor(this.window.height / 16 / 2), 40)
             this.playfield.cellCount = Math.floor((this.window.width - 350) / 16 / 2)
+            this.startCellId = (Math.ceil(this.playfield.rowCount / 2) - 1) * (this.playfield.cellCount) + Math.floor(this.playfield.cellCount / 4)
+            this.targetCellId = (Math.ceil(this.playfield.rowCount / 2) - 1) * (this.playfield.cellCount) + Math.ceil((this.playfield.cellCount / 4) * 3) + 1
             this.renderKey += 1
         },
         sleep: function(seconds) {
@@ -94,7 +161,6 @@ export default {
 
         },
         startAStar: function() {
-
         }
     }
 }
@@ -102,20 +168,5 @@ export default {
 
 
 <style scoped>
-
-@keyframes fadeIn {
-    from {
-        min-width: 0rem;
-        min-height: 0rem;
-    };
-    to {
-        min-width: 2rem;
-        min-height: 2rem;
-    }
-}
-
-.cell {
-    animation: fadeIn 1s;
-}
 
 </style>

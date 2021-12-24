@@ -33,18 +33,6 @@
         </div>
         <div v-if="v$.settings.speed.$invalid && v$.settings.$dirty" class="invalid-feedback">You must select a speed level!</div>
         <br>
-        <div v-if="url === 'pathfinding'" class="fs-5">Select Cells</div>
-        <div v-if="url === 'pathfinding'" class="btn-group" role="group" aria-label="Basic radio toggle button group">
-            <input type="radio" class="btn-check form-check-input" name="cursorGroup" value="start" id="cursorOption1">
-            <label class="btn btn-outline-primary" for="cursorOption1">start</label>
-
-            <input type="radio" class="btn-check form-check-input" name="cursorGroup" value="target" id="cursorOption2">
-            <label class="btn btn-outline-primary" for="cursorOption2">target</label>
-
-            <input type="radio" class="btn-check form-check-input" name="cursorGroup" value="bomb" id="cursorOption3">
-            <label class="btn btn-outline-primary" for="cursorOption3">obstacle</label>
-        </div>
-        <br>
         <button @click.prevent="reset" type="submit" class="btn btn-outline-danger">Reset <fas icon="power-off"/></button>
         <br>
         <button @click.prevent="start" type="submit" class="btn btn-outline-success">Start <fas icon="play"/></button>
