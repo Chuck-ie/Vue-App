@@ -1,6 +1,6 @@
 <template>
-    <form class="container card position-absolute top-0" style="width:18rem; left:3rem" novalidate>
-        <div class="fs-5">Select Algorithm<fas class="iconAlgos" icon="robot"/></div>
+    <form class="container card position-absolute top-0" style="width:18rem; left:3rem; userSelect:None" novalidate>
+        <div class="fs-5">Select Algorithm:<fas class="iconAlgos" icon="robot"/></div>
         <!-- LOAD IF SORTING PROJECT -->
         <div v-if="url === 'sorting'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
             <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="selectionSort" id="selectionSort">
@@ -20,7 +20,7 @@
         </div>
         <div v-if="v$.settings.algorithm.name.$invalid && v$.settings.$dirty && url === 'pathfinding'" class="invalid-feedback">You must select an algorithm!</div>
         <br>
-        <div class="fs-5">Select Speed<fas class="iconSpeed" icon="tachometer-alt"/></div>
+        <div class="fs-5">Select Speed:<fas class="iconSpeed" icon="tachometer-alt"/></div>
         <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
             <input v-model="settings.speed" type="radio" class="btn-check form-check-input" name="speedGroup" value="1.0" id="speedOption1">
             <label class="btn btn-outline-primary" for="speedOption1">1.0 x</label>
@@ -32,6 +32,18 @@
             <label class="btn btn-outline-primary" for="speedOption3">0.3 x</label>
         </div>
         <div v-if="v$.settings.speed.$invalid && v$.settings.$dirty" class="invalid-feedback">You must select a speed level!</div>
+        <br>
+        
+        <div v-if="url==='pathfinding'">
+            <label for="pressButtons">Hold down buttons:</label>
+            <div id="pressButtons" class="card">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item border border-primary border-bottom-0">ALT: creates obstacle <fas id="iconObstacle" icon="square"/></li>
+                    <li class="list-group-item border border-primary border-bottom-0">SHIFT: moves start <fas id="iconStart" icon="arrow-down"/></li>
+                    <li class="list-group-item border border-primary">CTRL: moves target <fas id="iconTarget" icon="bullseye"/></li>
+                </ul>
+            </div>
+        </div>
         <br>
         <button @click.prevent="reset" type="submit" class="btn btn-outline-danger">Reset <fas icon="power-off"/></button>
         <br>
@@ -118,9 +130,9 @@ export default {
 
                         if (this.$refs.pathfinding.playfield.running || this.$refs.pathfinding.playfield.pathFound) {
                             await this.$refs.pathfinding.calculatePlayfieldSize()
-                            await this.$refs.sorting.sleep(1)
+                            await this.$refs.pathfinding.sleep(0.2)
                             this.startTimer()
-                        
+
                         } else {
                             this.startTimer()
                         }
@@ -197,7 +209,7 @@ export default {
 
                     case "pathfinding":
 
-                        if (this.settings.algorithm.running) {
+                        if (this.settings.algorithm.running && !this.$refs.pathfinding.playfield.pathFound) {
                             passedTime = ((new Date()).getTime() - startTime)/1000
                             this.timer.value = ((Math.round(passedTime * 100) / 100).toFixed(3)).toString()
                         
@@ -215,11 +227,27 @@ export default {
 <style scoped>
 
 .iconAlgos {
-    margin-left: 45px;
+    margin-left: 33px;
 }
 
 .iconSpeed {
-    margin-left: 94px;
+    margin-left: 83px;
+}
+
+#iconObstacle {
+    margin-left: 0px;
+}
+
+#iconStart {
+    margin-left: 29px;
+}
+
+#iconTarget {
+    margin-left: 27px;
+}
+
+.container {
+    cursor: default;
 }
 
 </style>
