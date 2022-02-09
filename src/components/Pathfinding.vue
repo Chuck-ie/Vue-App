@@ -14,7 +14,8 @@
                     'cell',
                     { 'start' : startCell.id === ('row-'+i+'-cell-'+j) },
                     { 'target' : targetCell.id === ('row-'+i+'-cell-'+j) },
-                    `hcost=${ (Math.abs(targetCell.row - i) + Math.abs(targetCell.cell - j)) }`
+                    `hcost=${ (Math.abs(targetCell.row - i) + Math.abs(targetCell.cell - j)) }`,
+                    `gcost=${ (Math.abs(startCell.row - i) + Math.abs(startCell.cell - j)) }`
                 ]"
                 :style="{
                     position: 'fixed', 
@@ -240,13 +241,17 @@ export default {
         colorizePath: async function(finalNode) {
 
             var currentNode = finalNode
+            var count = 0
 
             while (currentNode) {
                 currentNode.actualCell.style.backgroundColor = "#E6727A"
                 currentNode.actualCell.classList.add("finalPath")
                 currentNode = currentNode.predecessor
                 await this.sleep(0.05)
+                count += 1
             }
+
+            console.log(count)
         },
         startDijkstra: async function(userDelay) {
 
@@ -254,7 +259,6 @@ export default {
             var uniqueRenderKey = this.renderKey
 
             var startNode = this.createNode(document.getElementById(this.startCell.id), null)
-            var targetNode = this.createNode(document.getElementById(this.targetCell.id), undefined)
             var nextNodes = [startNode]; var visitedCells = []
             
             while (nextNodes.length > 0 && uniqueRenderKey == this.renderKey) {
@@ -265,9 +269,8 @@ export default {
                 this.colorizeNode(currentNode.actualCell)
                 await this.sleep((20/parseFloat(userDelay))/this.totalCellCount)
 
-                if (currentNode.actualCell === targetNode.actualCell) {
-                    targetNode.predecessor = currentNode
-                    this.colorizePath(targetNode)
+                if (currentNode.actualCell.id === this.targetCell.id) {
+                    this.colorizePath(currentNode)
                     break
                 }
 
@@ -284,80 +287,99 @@ export default {
             this.playfield.running = false
             this.playfield.pathFound = true
         },
-        startAStar: async function(userDelay) {
+        startAStar: async function() {
+
+            this.softResetPlayfield()
 
             this.playfield.running = true
             var uniqueRenderKey = this.renderKey
 
-            var startNode = this.createNode(document.getElementById(this.startCell.id), null)
-            var targetNode = this.createNode(document.getElementById(this.targetCell.id), undefined)
-            var visitedCells = [startNode.actualCell.id]; var possibleNodes = []
-            var currentNode = startNode
+            var startCell = document.getElementById(this.startCell.id)
+            var targetCell = document.getElementById(this.targetCell.id)
+            var currentNode = {
+                actualCell: startCell,
+                predecessor: null
+            }
             
-            while (possibleNodes.length > 0 || currentNode !== null && uniqueRenderKey === this.renderKey) {
+            var possibleNext = []; var visitedIds = []; var fullyVisitedIds = []
 
-                visitedCells.push(currentNode.actualCell.id)
+            while (possibleNext.length > 0 || currentNode !== null && uniqueRenderKey === this.renderKey) {
+
+                fullyVisitedIds.push(currentNode.actualCell.id)
+
                 this.colorizeNode(currentNode.actualCell)
-                await this.sleep((20/parseFloat(userDelay))/this.totalCellCount)
+                await this.sleep(0.01)
 
-                if (currentNode.actualCell === targetNode.actualCell) {
-                    targetNode.predecessor = currentNode
+                if (currentNode.actualCell.id === targetCell.id) {
                     this.playfield.pathFound = true
-                    this.colorizePath(targetNode)
+                    this.colorizePath(currentNode)
                     break
                 }
 
-                var neighbours = this.getNeighbours(currentNode.actualCell, possibleNodes, visitedCells, currentNode)
+                var relativePos = [[0,1], [0,-1], [1,0], [-1,0]]
+                var unvisitedNeighbours = []
 
-                neighbours.map(neighbour => {
-                    
-                    var gcost = 0
-                    var hcost
-                    for (let classname of neighbour.actualCell.classList.values()) {
+                relativePos.forEach(pos => {
+                    var currRow = parseInt(currentNode.actualCell.id.split("-")[1])
+                    var currCell = parseInt(currentNode.actualCell.id.split("-")[3])
+                    var neighbour = document.getElementById(`row-${currRow + pos[0]}-cell-${currCell + pos[1]}`)
+
+                    if (neighbour && !neighbour.classList.contains("obstacle") && !visitedIds.includes(neighbour.id)) {
+                        unvisitedNeighbours.push(neighbour)
+                        visitedIds.push(neighbour.id)
+                    }
+                })
+
+                unvisitedNeighbours.forEach(neighbour => {
+
+                    var hcost; var gcost
+                    neighbour.classList.forEach(classname => {
                         if (classname.match(/hcost=[0-9]*/)) hcost = parseInt(classname.split("=")[1])
-                    }
+                        if (classname.match(/gcost=[0-9]*/)) gcost = parseInt(classname.split("=")[1])
+                    })
 
-                    var temp = neighbour.actualCell
-                    while (temp) {
-                        temp = temp.predecessor
-                        gcost += 1
-                    }
-
-                    return Object.assign(neighbour, {
+                    possibleNext.push({
+                        actualCell: neighbour,
+                        predecessor: currentNode,
                         gcost: gcost,
                         hcost: hcost,
                         fcost: gcost + hcost
                     })
-                }).forEach(node => {
-                    possibleNodes.push(node)
                 })
 
-                var bestWeighting = Math.min(...possibleNodes.map(node => {
+                var bestFcost = Math.min(...possibleNext.map(node => {
                     return node.fcost
                 }))
 
-                var bestNeighbours = possibleNodes.filter(node => {
-                    return node.fcost === bestWeighting
+                var hasLowestFcost = []
+                possibleNext.forEach(node => {
+                    if (node.fcost === bestFcost && node.actualCell.id !== currentNode.actualCell.id) {
+                        hasLowestFcost.push(node)
+                    }
                 })
 
-                if (bestNeighbours.length === 0) {
-                    currentNode = null
+                if (hasLowestFcost.length === 0) {
+                    return
                 }
-                else if (bestNeighbours.length === 1) {
-                    currentNode = bestNeighbours[0]
-                    possibleNodes.splice(possibleNodes.indexOf(currentNode), 1)
+                else if (hasLowestFcost.length === 1) {
+                    currentNode = hasLowestFcost[0]
+                    possibleNext.splice(possibleNext.indexOf(hasLowestFcost[0]), 1)
                 }
-                else if (bestNeighbours.length > 1) {
+                else if (hasLowestFcost.length > 1) {
 
-                    var bestHcost = Math.min(...bestNeighbours.map(node => {
+                    var bestHcost = Math.min(...hasLowestFcost.map(node => {
                         return node.hcost
                     }))
 
-                    currentNode = bestNeighbours.filter(neighbour => {
-                        return neighbour.hcost === bestHcost
-                    })[0]
-                    
-                    possibleNodes.splice(possibleNodes.indexOf(currentNode), 1)
+                    var hasLowestHcost = []
+                    hasLowestFcost.forEach(node => {
+                        if (node.hcost === bestHcost) {
+                            hasLowestHcost.push(node)
+                        }
+                    })
+
+                    currentNode = hasLowestHcost[0]
+                    possibleNext.splice(possibleNext.indexOf(hasLowestHcost[0]), 1)
                 }
             }
 
