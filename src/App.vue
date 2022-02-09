@@ -15,3 +15,12 @@
 
 
 </script>
+
+<style>
+
+*, *::after, *::before {
+	-webkit-user-select: none;
+	-webkit-user-drag: none;
+}
+
+</style>

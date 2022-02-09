@@ -33,17 +33,7 @@
         </div>
         <div v-if="v$.settings.speed.$invalid && v$.settings.$dirty" class="invalid-feedback">You must select a speed level!</div>
         <br>
-        
-        <div v-if="url==='pathfinding'">
-            <label for="pressButtons">Hold down buttons:</label>
-            <div id="pressButtons" class="card">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item border border-primary border-bottom-0">ALT: creates obstacle <fas id="iconObstacle" icon="square"/></li>
-                    <li class="list-group-item border border-primary border-bottom-0">SHIFT: moves start <fas id="iconStart" icon="arrow-down"/></li>
-                    <li class="list-group-item border border-primary">CTRL: moves target <fas id="iconTarget" icon="bullseye"/></li>
-                </ul>
-            </div>
-        </div>
+
         <br>
         <button @click.prevent="reset" type="submit" class="btn btn-outline-danger">Reset <fas icon="power-off"/></button>
         <br>
@@ -129,11 +119,11 @@ export default {
                     case "pathfinding":
 
                         if (this.$refs.pathfinding.playfield.running || this.$refs.pathfinding.playfield.pathFound) {
-                            await this.$refs.pathfinding.calculatePlayfieldSize()
+                            await this.$refs.pathfinding.calculatePlayfieldSize(true)
                             await this.$refs.pathfinding.sleep(0.2)
                             this.startTimer()
-
-                        } else {
+                        } 
+                        else {
                             this.startTimer()
                         }
 
@@ -150,7 +140,7 @@ export default {
                         break
                 
                     default:
-                        throw "url path is doomed, please reload."
+                        throw "Ah fuck, I can't believe you've done that."
                 }
             }
         },

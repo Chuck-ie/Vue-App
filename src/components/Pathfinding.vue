@@ -2,16 +2,19 @@
     <div style="position:absolute; left:21rem" :key="renderKey">
         <div ref="playfield" v-for="i in playfield.rowCount" :key="i">
             <div v-for="j in playfield.cellCount" :key="j"
+                @mousedown="changeCell($event)"
                 @mousemove="changeCell($event)"
-                @mouseenter="recomputeAlgo($event)"
-                :class="[ 
-                    (i-1)+'-'+j+ '|' +i+'-'+(j+1)+ '|' +(i+1)+'-'+j+ '|' +i+'-'+(j-1),
-                    'row-'+i+'-cell-'+j,    
+                @mouseup="startCell.selected = false; targetCell.selected = false"
+                @touchmove="changeCell($event)"
+                :class="[   
                     'border-end',
                     'border-bottom',
                     { 'border-top': i === 1 },
                     { 'border-start': j === 1 },
-                    'cell'
+                    'cell',
+                    { 'start' : startCell.id === ('row-'+i+'-cell-'+j) },
+                    { 'target' : targetCell.id === ('row-'+i+'-cell-'+j) },
+                    `hcost=${ (Math.abs(targetCell.row - i) + Math.abs(targetCell.cell - j)) }`
                 ]"
                 :style="{
                     position: 'fixed', 
@@ -20,11 +23,10 @@
                     minWidth: '2rem',
                     minHeight: '2rem',
                     }"
-                :id="(i-1) * playfield.cellCount + j"
+                :id="'row-'+i+'-cell-'+j"
                 >
                 <component 
-                :class="['draggable']"
-                v-if="(i-1) * playfield.cellCount + j === startCellId"
+                v-if="startCell.id === ('row-'+i+'-cell-'+j)"
                 :is="'fas'" 
                 :icon="'arrow-down'"
                 :style="{
@@ -36,8 +38,7 @@
                 >
                 </component>
                 <component 
-                :class="['draggable']"
-                v-if="(i-1) * playfield.cellCount + j === targetCellId"
+                v-if="targetCell.id === ('row-'+i+'-cell-'+j)"
                 :is="'fas'" 
                 :icon="'bullseye'"
                 :style="{
@@ -73,12 +74,27 @@ export default {
                 pathFound: false,
                 solvingSpeed: 0
             },
-            startCellId: null,
-            targetCellId: null,
-            totalCellCount: null
+            startCell: {
+                id: "",
+                row: null,
+                cell: null,
+                selected: false
+            },
+            targetCell: {
+                id: "",
+                row: null,
+                cell: null,
+                selected: false
+            },
+            totalCellCount: null,
+            timeoutInstance: null,
+            intervalInstance: null
         }
     },
     mounted() {
+
+        document.getElementsByTagName("html")[0].setAttribute("draggable", false)
+
         this.calculatePlayfieldSize()
         window.addEventListener("resize", () => {
 
@@ -89,38 +105,88 @@ export default {
         })
     },
     methods: {
-        changeCell: function(event) {
+        changeCell: async function(event) {
 
-            var x = event.x; var y = event.y
-            var elementsAtCursor = document.elementsFromPoint(x, y)
+            if (event.buttons !== 1) return
+            var cell
 
-            for (var element of elementsAtCursor) {
-                if (element.classList.contains("cell") && !element.classList.contains("obstacle") && parseInt(element.id) !== this.startCellId && parseInt(element.id) !== this.targetCellId) {
-
-                    if (event.altKey && !this.playfield.running) {
-                        element.style.backgroundColor = "black"
-                        element.classList.add("obstacle")
-                    }
-                    else if (event.shiftKey && !this.playfield.running && !this.playfield.pathFound) {
-                        this.startCellId = parseInt(element.id)
-                    }
-                    else if (event.ctrlKey && !this.playfield.running && !this.playfield.pathFound) {
-                        this.targetCellId = parseInt(element.id)
-                    }
+            for (let element of event.path) {
+                if (element.classList.contains("cell")) {
+                    cell = [element.id, element.classList]
+                    cell = element
+                    break
                 }
             }
+
+            if (this.startCell.selected && !cell.classList.contains("target")) {
+                this.startCell.id = cell.id
+                return
+            }
+            else if (this.targetCell.selected && !cell.classList.contains("start")) {
+                this.targetCell.id = cell.id
+                return
+            }
+
+            if (!cell.classList.contains("obstacle") && !cell.classList.contains("start") && !cell.classList.contains("target") && !this.playfield.running) {
+                cell.classList.add("obstacle")
+                cell.style.backgroundColor = "black"
+            }
+            else if (!cell.classList.contains("obstacle") && cell.classList.contains("start") && !cell.classList.contains("target") && !this.playfield.running) {
+                this.startCell.selected = true
+                this.targetCell.selected = false
+            }
+            else if (!cell.classList.contains("obstacle") && !cell.classList.contains("start") && cell.classList.contains("target") && !this.playfield.running) {
+                this.targetCell.selected = true
+                this.startCell.selected = false
+            }
         },
-        calculatePlayfieldSize: function() {
-            this.playfield.rowCount = Math.min(Math.floor(this.window.height / 16 / 2), 40)
-            this.playfield.cellCount = Math.floor((this.window.width - 350) / 16 / 2)
-            this.startCellId = (Math.ceil(this.playfield.rowCount / 2) - 1) * (this.playfield.cellCount) + Math.floor(this.playfield.cellCount / 4)
-            this.targetCellId = (Math.ceil(this.playfield.rowCount / 2) - 1) * (this.playfield.cellCount) + Math.ceil((this.playfield.cellCount / 4) * 3) + 1
-            this.totalCellCount = this.playfield.rowCount*this.playfield.cellCount
-            this.playfield.pathFound = false
-            this.playfield.running = false
-            this.renderKey += 1
+        calculatePlayfieldSize: function(softReset=false) {
+
+            if (softReset) {
+                this.softResetPlayfield()
+            }
+            else {
+                this.playfield.rowCount = Math.min(Math.floor(this.window.height / 16 / 2), 40)
+                this.playfield.cellCount = Math.floor((this.window.width - 350) / 16 / 2)
+
+                this.startCell.row = Math.floor(this.playfield.rowCount/2)
+                this.startCell.cell = Math.floor(this.playfield.cellCount/4)
+                this.startCell.id = `row-${this.startCell.row}-cell-${this.startCell.cell}`
+
+                this.targetCell.row = Math.floor(this.playfield.rowCount/2)
+                this.targetCell.cell = Math.ceil(this.playfield.cellCount * 0.75) + 1
+                this.targetCell.id = `row-${this.targetCell.row}-cell-${this.targetCell.cell}`
+
+                this.totalCellCount = this.playfield.rowCount*this.playfield.cellCount
+                this.playfield.pathFound = false
+                this.playfield.running = false
+                this.renderKey += 1
+            }
 
             return new Promise(resolve => resolve("Success"))
+        },
+        softResetPlayfield: async function() {
+
+            var obstacles = []
+            var startId = this.startCell.id
+            var targetId = this.targetCell.id
+
+            for (let htmlElement of document.getElementsByClassName("obstacle")) {
+                obstacles.push(htmlElement.id)
+            }
+            this.renderKey += 1
+            await this.sleep(0.001)
+
+            for (let id of obstacles) {
+                var cell = document.getElementById(id)
+                cell.classList.add("obstacle")
+                cell.style.backgroundColor = "black"
+            }
+
+            this.startCell.id = startId
+            this.targetCell.id = targetId
+
+            return
         },
         sleep: function(seconds) {
 
@@ -134,93 +200,105 @@ export default {
                 }
             });
         },
-        colorize: function(element, color) {
+        getNeighbours: function(htmlElement, nextNodes, visitedCells, currentNode) {
 
-            switch(color) {
-                case "yellow":
-                    element.style.backgroundColor = "#FFEEAD"
-                    break
+            var neighbours = [], tempNeighbours = []
+            var relativePos = [[0,1], [0,-1], [1,0], [-1,0]]
 
-                case "red":
-                    element.style.backgroundColor = "#FF6F69"
-                    break
-            }
-        },
-        getNeighbours: function(element) {
+            relativePos.forEach(pos => {
+                let row = htmlElement.id.split("-")[1]
+                let cell = htmlElement.id.split("-")[3]
+                let neighbour = document.getElementById(`row-${parseInt(row) + pos[0]}-cell-${parseInt(cell) + pos[1]}`)
+                if (neighbour) tempNeighbours.push(neighbour)
+            })
 
-            var neighbours = []
-            element.classList[0].split("|").forEach(row_cell => {
-                var newNeighbour = document.getElementsByClassName(`row-${row_cell.split("-")[0]}-cell-${row_cell.split("-")[1]}`)[0]
-                if (newNeighbour) neighbours.push(newNeighbour)
+            tempNeighbours.forEach(neighbour => {
+                if (
+                    !nextNodes.map(node => { return node.actualCell.id }).includes(neighbour.id)
+                    &&
+                    !visitedCells.includes(neighbour.id)
+                    &&
+                    !neighbour.classList.contains("obstacle")
+                    ) 
+                    {
+                        neighbours.push(this.createNode(neighbour, currentNode))
+                    }
             })
 
             return neighbours
         },
-        createNode: function(element, predecessor) {
+        createNode: function(htmlEelement, predecessor) {
             return {
-                actualCell: element,
+                actualCell: htmlEelement,
                 predecessor: predecessor
             }
+        },
+        colorizeNode: function(htmlEelement) {
+            htmlEelement.style.backgroundColor = "rgb(0, 197, 255)"
+            htmlEelement.classList.add("visited")
         },
         colorizePath: async function(finalNode) {
 
             var currentNode = finalNode
+
             while (currentNode) {
-                currentNode.actualCell.style.backgroundColor = "#88D8B0"
+                currentNode.actualCell.style.backgroundColor = "#E6727A"
                 currentNode.actualCell.classList.add("finalPath")
                 currentNode = currentNode.predecessor
+                await this.sleep(0.05)
             }
         },
-        recomputeAlgo: async function(event) {
-
-            var x = event.x; var y = event.y
-            var elementsAtCursor = document.elementsFromPoint(x, y)
-
-            for (var element of elementsAtCursor) {
-                if (element.classList.contains("cell") && !element.classList.contains("obstacle") && parseInt(element.id) !== this.startCellId && parseInt(element.id) !== this.targetCellId) {
-
-                    var startId; var targetId
-                    if (event.shiftKey && !this.playfield.running && this.playfield.pathFound) {
-                        startId = parseInt(element.id)
-                        targetId = this.targetCellId
-
-                        await this.calculatePlayfieldSize()
-
-                        this.startCellId = startId; this.targetCellId = targetId
-                        this.startDijkstra(0, false)
-                    }
-                    else if (event.ctrlKey && !this.playfield.running && this.playfield.pathFound) {
-                        this.playfield.running = true
-                        targetId = parseInt(element.id)
-                        startId = this.startCellId
-
-                        await this.calculatePlayfieldSize()
-
-                        this.startCellId = startId; this.targetCellId = targetId
-                        this.startDijkstra(0, false)
-                    }
-
-                }
-            }
-        },
-        startDijkstra: async function(userDelay, computationDelay=true) {
+        startDijkstra: async function(userDelay) {
 
             this.playfield.running = true
             var uniqueRenderKey = this.renderKey
 
-            var startNode = this.createNode(document.getElementById(this.startCellId), null)
-            var targetNode = this.createNode(document.getElementById(this.targetCellId), undefined)
-
-            var nextNodes = [startNode]; var visitedNodes = []
+            var startNode = this.createNode(document.getElementById(this.startCell.id), null)
+            var targetNode = this.createNode(document.getElementById(this.targetCell.id), undefined)
+            var nextNodes = [startNode]; var visitedCells = []
             
-            while (this.playfield.pathFound !== true && nextNodes.length > 0) {
+            while (nextNodes.length > 0 && uniqueRenderKey == this.renderKey) {
 
-                if (uniqueRenderKey !== this.renderKey) return
                 var currentNode = nextNodes[0]
                 nextNodes.shift()
 
-                this.colorize(currentNode.actualCell, "yellow")
-                if (computationDelay) await this.sleep((20/parseFloat(userDelay))/this.totalCellCount)
+                this.colorizeNode(currentNode.actualCell)
+                await this.sleep((20/parseFloat(userDelay))/this.totalCellCount)
+
+                if (currentNode.actualCell === targetNode.actualCell) {
+                    targetNode.predecessor = currentNode
+                    this.colorizePath(targetNode)
+                    break
+                }
+
+                var neighbours = this.getNeighbours(currentNode.actualCell, nextNodes, visitedCells, currentNode)
+
+                neighbours.forEach(neighbour => {
+                    nextNodes.push(neighbour)
+                })
+                
+                visitedCells.push(currentNode.actualCell.id)
+                currentNode = nextNodes[0]
+            }
+
+            this.playfield.running = false
+            this.playfield.pathFound = true
+        },
+        startAStar: async function(userDelay) {
+
+            this.playfield.running = true
+            var uniqueRenderKey = this.renderKey
+
+            var startNode = this.createNode(document.getElementById(this.startCell.id), null)
+            var targetNode = this.createNode(document.getElementById(this.targetCell.id), undefined)
+            var visitedCells = [startNode.actualCell.id]; var possibleNodes = []
+            var currentNode = startNode
+            
+            while (possibleNodes.length > 0 || currentNode !== null && uniqueRenderKey === this.renderKey) {
+
+                visitedCells.push(currentNode.actualCell.id)
+                this.colorizeNode(currentNode.actualCell)
+                await this.sleep((20/parseFloat(userDelay))/this.totalCellCount)
 
                 if (currentNode.actualCell === targetNode.actualCell) {
                     targetNode.predecessor = currentNode
@@ -229,26 +307,62 @@ export default {
                     break
                 }
 
-                this.colorize(currentNode.actualCell, "red")
-                var newNeighbours = this.getNeighbours(currentNode.actualCell)
+                var neighbours = this.getNeighbours(currentNode.actualCell, possibleNodes, visitedCells, currentNode)
 
-                newNeighbours.forEach(neighbour => {
-                    if (
-                        !nextNodes.map(node => { return node.actualCell }).includes(neighbour)
-                        &&
-                        !visitedNodes.map(node => { return node.actualCell }).includes(neighbour)
-                        ) {
-                            nextNodes.push(this.createNode(neighbour, currentNode))
-                        }
+                neighbours.map(neighbour => {
+                    
+                    var gcost = 0
+                    var hcost
+                    for (let classname of neighbour.actualCell.classList.values()) {
+                        if (classname.match(/hcost=[0-9]*/)) hcost = parseInt(classname.split("=")[1])
+                    }
+
+                    var temp = neighbour.actualCell
+                    while (temp) {
+                        temp = temp.predecessor
+                        gcost += 1
+                    }
+
+                    return Object.assign(neighbour, {
+                        gcost: gcost,
+                        hcost: hcost,
+                        fcost: gcost + hcost
+                    })
+                }).forEach(node => {
+                    possibleNodes.push(node)
                 })
-                
-                visitedNodes.push(currentNode)
-                currentNode = nextNodes[0]
+
+                var bestWeighting = Math.min(...possibleNodes.map(node => {
+                    return node.fcost
+                }))
+
+                var bestNeighbours = possibleNodes.filter(node => {
+                    return node.fcost === bestWeighting
+                })
+
+                if (bestNeighbours.length === 0) {
+                    currentNode = null
+                }
+                else if (bestNeighbours.length === 1) {
+                    currentNode = bestNeighbours[0]
+                    possibleNodes.splice(possibleNodes.indexOf(currentNode), 1)
+                }
+                else if (bestNeighbours.length > 1) {
+
+                    var bestHcost = Math.min(...bestNeighbours.map(node => {
+                        return node.hcost
+                    }))
+
+                    currentNode = bestNeighbours.filter(neighbour => {
+                        return neighbour.hcost === bestHcost
+                    })[0]
+                    
+                    possibleNodes.splice(possibleNodes.indexOf(currentNode), 1)
+                }
             }
 
             this.playfield.running = false
-        },
-        startAStar: function() {
+            this.playfield.pathFound = true
         }
     }
 }
@@ -257,14 +371,24 @@ export default {
 
 <style scoped>
 
-.finalPath {
-    animation-name: fadeIn;
-    animation-duration: 0.4s;
+@keyframes visitedCell {
+    from {background-color: black;}
+    to {background-color: rgb(0, 197, 255);}
 }
 
-@keyframes fadeIn {
-    from {background-color: #FF6F69}
-    to {background-color: #88D8B0}
+@keyframes shortestPath {
+    from {background-color: #88D8B0;}
+    to {background-color: #E6727A;}
+}
+
+.visited {
+    animation: visitedCell;
+    animation-duration: 1s;
+}
+
+.finalPath {
+    animation: shortestPath;
+    animation-duration: 1s;
 }
 
 </style>
