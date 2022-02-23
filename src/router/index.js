@@ -24,4 +24,8 @@ const router = createRouter({
 	routes
 })
 
+router.afterEach(() => {
+	document.title = window.location.href.substr(window.location.href.lastIndexOf("/") + 1)
+})
+
 export default router

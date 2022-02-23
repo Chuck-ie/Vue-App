@@ -91,9 +91,6 @@ export default {
         }
     },
     mounted() {
-
-        document.getElementsByTagName("html")[0].setAttribute("draggable", false)
-
         this.calculatePlayfieldSize()
         window.addEventListener("resize", () => {
 
