@@ -65,7 +65,7 @@ export default {
             }
 
             this.playfield.elementIds.sort(() => Math.random() - 0.5)
-            this.playfield.elementHeight = Math.floor((this.window.height - 450) / arrayLength)
+            this.playfield.elementHeight = Math.floor((this.window.height - 400) / arrayLength)
             this.renderKey += 1
         },
         sleep: function(seconds) {
@@ -229,6 +229,51 @@ export default {
             }
 
             return i
+        },
+        startBubbleSort: async function(userMultiplier) {
+
+            var allElements = Array.from(document.getElementsByClassName("sortingElement"))
+            this.calculateDelay(parseInt(allElements.length), userMultiplier)
+
+            this.playfield.running = true
+
+            for (let i = 1; i < allElements.length; i++) {
+                for (let j = i; j > 0; j--) {
+
+                    var highElement = allElements[j]
+                    var lowElement = allElements[j-1]
+
+                    this.colorize(highElement, "warning")
+                    this.colorize(lowElement, "warning")
+                    await this.sleep(2 * this.playfield.solvingSpeed)
+
+                    if (parseInt(highElement.id) < parseInt(lowElement.id)) {
+                        this.swapElements(highElement, lowElement)
+
+                        this.colorize(highElement, "success")
+                        this.colorize(lowElement, "success")
+                        await this.sleep(2 * this.playfield.solvingSpeed)
+                    }
+                    else {
+                        this.colorize(highElement, "danger")
+                        this.colorize(lowElement, "danger")
+                        await this.sleep(2 * this.playfield.solvingSpeed)
+                    }
+                }
+
+                if (i+1 < allElements.length) {
+                    for (var element of allElements) {
+                        this.colorize(element, "dark")
+                    }
+                    await this.sleep(2 * this.playfield.solvingSpeed)
+                }
+            }
+
+            if (document.body.contains(allElements[0])) {
+                this.playfield.running = false
+                this.playfield.isSorted = true
+                return
+            }
         }
     }
 }

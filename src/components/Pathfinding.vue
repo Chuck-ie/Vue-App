@@ -2,10 +2,9 @@
     <div style="position:absolute; left:21rem" :key="renderKey">
         <div ref="playfield" v-for="i in playfield.rowCount" :key="i">
             <div v-for="j in playfield.cellCount" :key="j"
-                @mousedown="changeCell($event)"
-                @mousemove="changeCell($event)"
+                @mousedown="changeCell($event, true)"
+                @mouseenter="changeCell($event, false)"
                 @mouseup="startCell.selected = false; targetCell.selected = false"
-                @touchmove="changeCell($event)"
                 :class="[   
                     'border-end',
                     'border-bottom',
@@ -105,7 +104,7 @@ export default {
         })
     },
     methods: {
-        changeCell: async function(event) {
+        changeCell: async function(event, onStart) {
 
             if (event.buttons !== 1) return
             var cell
@@ -118,26 +117,25 @@ export default {
                 }
             }
 
-            if (this.startCell.selected && !cell.classList.contains("target")) {
-                this.startCell.id = cell.id
-                return
+            if (onStart) {
+                if (cell.classList.contains("start")) {
+                    this.startCell.selected = true
+                }
+                else if (cell.classList.contains("target")) {
+                    this.targetCell.selected = true
+                }
             }
-            else if (this.targetCell.selected && !cell.classList.contains("start")) {
-                this.targetCell.id = cell.id
-                return
-            }
-
-            if (!cell.classList.contains("obstacle") && !cell.classList.contains("start") && !cell.classList.contains("target") && !this.playfield.running) {
-                cell.classList.add("obstacle")
-                cell.style.backgroundColor = "black"
-            }
-            else if (!cell.classList.contains("obstacle") && cell.classList.contains("start") && !cell.classList.contains("target") && !this.playfield.running) {
-                this.startCell.selected = true
-                this.targetCell.selected = false
-            }
-            else if (!cell.classList.contains("obstacle") && !cell.classList.contains("start") && cell.classList.contains("target") && !this.playfield.running) {
-                this.targetCell.selected = true
-                this.startCell.selected = false
+            else {
+                if (this.startCell.selected && !cell.classList.contains("obstacle") && !cell.classList.contains("target")) {
+                    this.startCell.id = cell.id
+                }
+                else if (this.targetCell.selected && !cell.classList.contains("obstacle") && !cell.classList.contains("start")) {
+                    this.targetCell.id = cell.id
+                }
+                else if (!this.startCell.selected && !this.targetCell.selected && !cell.classList.contains("start") && !cell.classList.contains("target")) {
+                    cell.classList.add("obstacle")
+                    cell.style.backgroundColor = "black"
+                }
             }
         },
         calculatePlayfieldSize: function(softReset=false) {
@@ -237,39 +235,39 @@ export default {
                 predecessor: predecessor
             }
         },
-        colorizeNode: function(htmlEelement) {
+        colorizeElement: function(htmlEelement) {
             htmlEelement.style.backgroundColor = "rgb(0, 197, 255)"
             htmlEelement.classList.add("visited")
         },
         colorizePath: async function(finalNode) {
 
             var currentNode = finalNode
-            var count = 0
 
             while (currentNode) {
                 currentNode.actualCell.style.backgroundColor = "#E6727A"
                 currentNode.actualCell.classList.add("finalPath")
                 currentNode = currentNode.predecessor
                 await this.sleep(0.05)
-                count += 1
             }
-
-            console.log(count)
         },
         startDijkstra: async function(userDelay) {
 
             this.playfield.running = true
             var uniqueRenderKey = this.renderKey
 
-            var startNode = this.createNode(document.getElementById(this.startCell.id), null)
+            var startNode = {
+                actualCell: document.getElementById(this.startCell.id),
+                predecessor: null
+            }
+
             var nextNodes = [startNode]; var visitedCells = []
             
-            while (nextNodes.length > 0 && uniqueRenderKey == this.renderKey) {
+            while (nextNodes.length > 0 && uniqueRenderKey === this.renderKey) {
 
                 var currentNode = nextNodes[0]
                 nextNodes.shift()
 
-                this.colorizeNode(currentNode.actualCell)
+                this.colorizeElement(currentNode.actualCell)
                 await this.sleep((20/parseFloat(userDelay))/this.totalCellCount)
 
                 if (currentNode.actualCell.id === this.targetCell.id) {
@@ -287,8 +285,10 @@ export default {
                 currentNode = nextNodes[0]
             }
 
-            this.playfield.running = false
-            this.playfield.pathFound = true
+            if (uniqueRenderKey === this.renderKey) {
+                this.playfield.running = false
+                this.playfield.pathFound = true
+            }
         },
         startAStar: async function(userDelay) {
 
@@ -319,7 +319,7 @@ export default {
 
             while (currentNode && uniqueRenderKey === this.renderKey) {
 
-                this.colorizeNode(currentNode.actualCell)
+                this.colorizeElement(currentNode.actualCell)
                 await this.sleep((20/parseFloat(userDelay))/this.totalCellCount)
                 fullyVisitedIds.push(currentNode.actualCell.id)
 
@@ -328,9 +328,8 @@ export default {
 
                 if (currentNode.actualCell.id === this.targetCell.id) {
                     this.colorizePath(currentNode)
-                    return
+                    break
                 }
-
 
                 for (let pos of relativePos) {
                     var currRow = parseInt(currentNode.actualCell.id.split("-")[1])
@@ -397,8 +396,10 @@ export default {
                 }
             }
 
-            this.playfield.running = false
-            this.playfield.pathFound = true
+            if (uniqueRenderKey === this.renderKey) {
+                this.playfield.running = false
+                this.playfield.pathFound = true
+            }
         }
     }
 }

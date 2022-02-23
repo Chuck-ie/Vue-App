@@ -9,6 +9,11 @@
             <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="quickSort" id="quickSort">
             <label class="btn btn-outline-primary" for="quickSort">Quicksort</label>
         </div>
+        <br>
+        <div v-if="url === 'sorting'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
+            <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="bubbleSort" id="bubbleSort">
+            <label class="btn btn-outline-primary" for="bubbleSort">Bubblesort</label>
+        </div>
         <div v-if="v$.settings.algorithm.name.$invalid && v$.settings.$dirty && url === 'sorting'" class="invalid-feedback">You must select an algorithm!</div>
         <!-- LOAD IF PATHING PROJECT -->
         <div v-if="url === 'pathfinding'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
@@ -97,7 +102,7 @@ export default {
 
                         if (this.$refs.sorting.playfield.running || this.$refs.sorting.playfield.isSorted) {
                             await this.$refs.sorting.calculatePlayfieldSize()
-                            await this.$refs.sorting.sleep(1)
+                            await this.$refs.sorting.sleep(0.5)
                             this.startTimer()
 
                         } else {
@@ -113,6 +118,10 @@ export default {
                             case "quickSort":
                                 await this.$refs.sorting.startQuickSort(this.settings.speed)
                                 break
+
+                            case "bubbleSort":
+                                await this.$refs.sorting.startBubbleSort(this.settings.speed)
+                                break
                         }
                         break
 
@@ -120,7 +129,7 @@ export default {
 
                         if (this.$refs.pathfinding.playfield.running || this.$refs.pathfinding.playfield.pathFound) {
                             await this.$refs.pathfinding.calculatePlayfieldSize(true)
-                            await this.$refs.pathfinding.sleep(0.2)
+                            await this.$refs.pathfinding.sleep(0.01)
                             this.startTimer()
                         } 
                         else {
