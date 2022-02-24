@@ -274,6 +274,76 @@ export default {
                 this.playfield.isSorted = true
                 return
             }
+        },
+        startRadixSort: async function(userMultiplier) {
+
+            var allElements = Array.from(document.getElementsByClassName("sortingElement"))
+            var currentOrder = allElements.map(element => { return element.id })
+            var currRenderKey = this.renderKey
+
+            this.calculateDelay(parseInt(allElements.length), userMultiplier)
+
+            this.playfield.running = true
+            var counter = 0
+            var maxNumLength = (allElements.length - 1).toString().length
+
+            while (counter < maxNumLength) {
+
+                var newOrder = []
+
+                for (var digit = 0; digit <= 9; digit++) {
+                    for (let id of currentOrder) {
+
+                        var comparisonDigit = id.charAt(id.length - counter - 1)
+                        if ((comparisonDigit && comparisonDigit == digit) || !comparisonDigit && digit === 0) newOrder.push(id)
+                    }
+                }
+
+                for (var i = 0; i < allElements.length; i++) {
+
+                    var element1 = document.getElementById(currentOrder[i])
+                    var element2 = document.getElementById(newOrder[i])
+
+                    this.colorize(element1, "warning")
+                    this.colorize(element2, "warning")
+                    await this.sleep(4*this.playfield.solvingSpeed)
+
+                    if (this.renderKey !== currRenderKey) {
+                        this.colorize(element1, "dark")
+                        this.colorize(element2, "dark")
+                        return
+                    }
+                    this.swapElements(element1, element2)
+
+                    this.colorize(element1, "success")
+                    this.colorize(element2, "success")
+                    await this.sleep(4*this.playfield.solvingSpeed)
+
+
+                    if (counter === maxNumLength-1 && element1.id != element2.id) {
+                        this.colorize(element1, "success")
+                        this.colorize(element2, "dark")
+                    }
+                    else if (counter === maxNumLength-1 && element1.id == element2.id) {
+                        this.colorize(element1, "dark")
+                        this.colorize(element2, "success")
+                    }
+                    else {
+                        this.colorize(element1, "dark")
+                        this.colorize(element2, "dark")
+                    }
+
+                    let [id, j] = [currentOrder[i], currentOrder.indexOf(newOrder[i])]
+                    currentOrder[i] = newOrder[i]
+                    currentOrder[j] = id
+                }
+
+                currentOrder = newOrder
+                counter++
+            }
+
+            this.playfield.running = false
+            this.playfield.isSorted = true
         }
     }
 }

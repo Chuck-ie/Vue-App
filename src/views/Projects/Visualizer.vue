@@ -13,6 +13,9 @@
         <div v-if="url === 'sorting'" class="btn-group is-invalid" role="group" aria-label="Basic radio toggle button group">
             <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="bubbleSort" id="bubbleSort">
             <label class="btn btn-outline-primary" for="bubbleSort">Bubblesort</label>
+
+            <input v-model="settings.algorithm.name" type="radio" class="btn-check form-check-input" name="algoGroup" value="radixSort" id="radixSort">
+            <label class="btn btn-outline-primary" for="radixSort">Radixsort</label>
         </div>
         <div v-if="v$.settings.algorithm.name.$invalid && v$.settings.$dirty && url === 'sorting'" class="invalid-feedback">You must select an algorithm!</div>
         <!-- LOAD IF PATHING PROJECT -->
@@ -102,7 +105,7 @@ export default {
 
                         if (this.$refs.sorting.playfield.running || this.$refs.sorting.playfield.isSorted) {
                             await this.$refs.sorting.calculatePlayfieldSize()
-                            await this.$refs.sorting.sleep(0.5)
+                            await this.$refs.sorting.sleep(1)
                             this.startTimer()
 
                         } else {
@@ -121,6 +124,10 @@ export default {
 
                             case "bubbleSort":
                                 await this.$refs.sorting.startBubbleSort(this.settings.speed)
+                                break
+
+                            case "radixSort":
+                                await this.$refs.sorting.startRadixSort(this.settings.speed)
                                 break
                         }
                         break
