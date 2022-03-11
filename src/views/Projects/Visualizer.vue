@@ -28,8 +28,9 @@
         </div>
         <div v-if="v$.settings.algorithm.name.$invalid && v$.settings.$dirty && url === 'pathfinding'" class="invalid-feedback">You must select an algorithm!</div>
         <br>
+
         <div class="fs-5">Select Speed:<fas class="iconSpeed" icon="tachometer-alt"/></div>
-        <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+        <div id="speedGroup" class="btn-group" role="group">
             <input v-model="settings.speed" type="radio" class="btn-check form-check-input" name="speedGroup" value="1.0" id="speedOption1">
             <label class="btn btn-outline-primary" for="speedOption1">1.0 x</label>
 
@@ -39,19 +40,20 @@
             <input v-model="settings.speed" type="radio" class="btn-check form-check-input" name="speedGroup" value="0.33" id="speedOption3">
             <label class="btn btn-outline-primary" for="speedOption3">0.3 x</label>
         </div>
+        
+        <br>
         <div v-if="v$.settings.speed.$invalid && v$.settings.$dirty" class="invalid-feedback">You must select a speed level!</div>
         <br>
 
-        <br>
         <button @click.prevent="reset" type="submit" class="btn btn-outline-danger">Reset <fas icon="power-off"/></button>
         <br>
         <button @click.prevent="start" type="submit" class="btn btn-outline-success">Start <fas icon="play"/></button>
         <br>
-        <div class="d-flex align-items-center">
+        <!-- <div class="d-flex align-items-center">
             <div>Runtime: {{ timer.value }}</div>
             <div v-if="timer.instance" class="spinner-border spinner-border-sm ms-auto" role="status" aria-hidden="true"></div>
         </div>
-        <br>
+        <br> -->
     </form>
     <Sorting v-if="url === 'sorting'" ref="sorting"/>
     <Pathfinding v-else-if="url === 'pathfinding'" ref="pathfinding"/>

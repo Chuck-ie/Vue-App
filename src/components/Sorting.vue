@@ -39,7 +39,8 @@ export default {
                 isSorted: false,
                 solvingSpeed: 0
             },
-            renderKey: 0
+            renderKey: 0,
+            counter: 0
         }
     },
     mounted() {
@@ -70,6 +71,8 @@ export default {
         },
         sleep: function(seconds) {
 
+            this.counter++
+
             return new Promise((resolve, reject) => {
                 var promise = setTimeout(() => {
                     resolve("Success")
@@ -81,6 +84,11 @@ export default {
             });
         },
         calculateDelay: function(x, y) {
+
+            if (y === 0) { 
+                this.playfield.solvingSpeed = 0
+                return
+            }
             
             var averageDelay = 20/(x ** 2 + x)
             this.playfield.solvingSpeed = averageDelay / parseFloat(y)
@@ -132,7 +140,7 @@ export default {
                 await this.sleep(this.playfield.solvingSpeed)
                 
                 if (bestElement !== selectedElement) {
-                    this.swapElements(selectedElement, bestElement)
+                    await this.swapElements(selectedElement, bestElement)
                     this.colorize(selectedElement, "success")
                     this.colorize(bestElement, "primary")
 
@@ -210,11 +218,13 @@ export default {
 
                 if (i < j) {
                     this.swapElements(array[i], array[j])
+                    await this.sleep(this.playfield.solvingSpeed)
                 }
             }
 
             if (parseInt(array[i].id) > parseInt(array[pivot].id)) {
                 this.swapElements(array[i], array[high])
+                await this.sleep(this.playfield.solvingSpeed)
             }
 
             this.colorize(array[i], "success")
@@ -245,19 +255,19 @@ export default {
 
                     this.colorize(highElement, "warning")
                     this.colorize(lowElement, "warning")
-                    await this.sleep(2 * this.playfield.solvingSpeed)
+                    await this.sleep(this.playfield.solvingSpeed)
 
                     if (parseInt(highElement.id) < parseInt(lowElement.id)) {
                         this.swapElements(highElement, lowElement)
 
                         this.colorize(highElement, "success")
                         this.colorize(lowElement, "success")
-                        await this.sleep(2 * this.playfield.solvingSpeed)
+                        await this.sleep(this.playfield.solvingSpeed)
                     }
                     else {
                         this.colorize(highElement, "danger")
                         this.colorize(lowElement, "danger")
-                        await this.sleep(2 * this.playfield.solvingSpeed)
+                        await this.sleep(this.playfield.solvingSpeed)
                     }
                 }
 
@@ -265,7 +275,7 @@ export default {
                     for (var element of allElements) {
                         this.colorize(element, "dark")
                     }
-                    await this.sleep(2 * this.playfield.solvingSpeed)
+                    await this.sleep(this.playfield.solvingSpeed)
                 }
             }
 
@@ -304,15 +314,12 @@ export default {
                     var element1 = document.getElementById(currentOrder[i])
                     var element2 = document.getElementById(newOrder[i])
 
+                    if (this.renderKey !== currRenderKey) return
+
                     this.colorize(element1, "warning")
                     this.colorize(element2, "warning")
                     await this.sleep(4*this.playfield.solvingSpeed)
 
-                    if (this.renderKey !== currRenderKey) {
-                        this.colorize(element1, "dark")
-                        this.colorize(element2, "dark")
-                        return
-                    }
                     this.swapElements(element1, element2)
 
                     this.colorize(element1, "success")
