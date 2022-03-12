@@ -103,7 +103,7 @@ export default {
     methods: {
         changeCell: async function(event, onStart) {
 
-            if (event.buttons !== 1) return
+            if (event.buttons !== 1 || this.playfield.running) return
             var cell
 
             for (let element of event.path) {
@@ -250,6 +250,7 @@ export default {
         startDijkstra: async function(userDelay) {
 
             this.playfield.running = true
+            this.playfield.pathFound = false
             var uniqueRenderKey = this.renderKey
 
             var startNode = {
@@ -289,9 +290,8 @@ export default {
         },
         startAStar: async function(userDelay) {
 
-            await this.softResetPlayfield()
-
             this.playfield.running = true
+            this.playfield.pathFound = false
             var uniqueRenderKey = this.renderKey
 
             var startCell = document.getElementById(this.startCell.id)

@@ -49,11 +49,11 @@
         <br>
         <button @click.prevent="start" type="submit" class="btn btn-outline-success">Start <fas icon="play"/></button>
         <br>
-        <!-- <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center">
             <div>Runtime: {{ timer.value }}</div>
             <div v-if="timer.instance" class="spinner-border spinner-border-sm ms-auto" role="status" aria-hidden="true"></div>
         </div>
-        <br> -->
+        <br>
     </form>
     <Sorting v-if="url === 'sorting'" ref="sorting"/>
     <Pathfinding v-else-if="url === 'pathfinding'" ref="pathfinding"/>

@@ -1,12 +1,11 @@
 <template>
-    <h3>PAGE NOT FOUND ERROR!!! 404</h3>
+    <h3>You proberbly misspelled the url you wished for</h3>
 </template>
 
-<script>
+<style scoped>
 
-export default {
-    
+h3 {
+    left: 20rem;
 }
 
-
-</script>
+</style>
